@@ -41,7 +41,8 @@ mkdir -p ~/.config ~/.config/nvim ~/.config/nvim/lua
 ln -s ~/dotfiles/zshrc ~/.zshrc
 ln -s ~/dotfiles/tmux.conf ~/.tmux.conf
 ln -s ~/dotfiles/init.lua ~/.config/nvim/init.lua
-ln -s ~/dotfiles/nvim/lua/* ~/.config/nvim/lua
+ln -s ~/dotfiles/nvim/lua ~/.config/nvim/lua
+ln -s ~/dotfiles/nvim/after ~/.config/nvim/after
 ln -s ~/dotfiles/coc-settings.json ~/.config/nvim/coc-settings.json
 
 # Italics and true color profile for tmux
@@ -83,6 +84,7 @@ if [[ `uname` == "Darwin"   ]]; then
   # casks only work in mac
   brew install --cask font-fira-code
   brew install --cask font-jetbrains-mono
+  brew install --cask font-meslo-lg-nerd-font
   brew install --cask font-iosevka
   brew install --cask rectangle
 

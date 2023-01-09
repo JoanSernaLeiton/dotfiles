@@ -1,3 +1,5 @@
+require("joanserna")
+
 -- require('plugins')
 -- require('settings')
 
@@ -19,15 +21,9 @@
 -- require('colors')
 -- require('customFunctions')
 
--- local colorSchemes = {
---   dracula = 'dracula',
---   draculaPro = 'dracula_pro',
---   gruvbox = 'gruvbox',
---   gruvboxMaterial = 'gruvbox-material',
---   nightOwl = 'night-owl',
---   nova = 'nova',
---   tokyoNight = 'tokyonight',
---   catppuccin = 'catppuccin'
--- }
+local colorSchemes = {
+    onedark = 'onedark',
+    blue = 'blue',
+}
 
--- vim.cmd(string.format('colorscheme ' .. colorSchemes.catppuccin))
+vim.cmd(string.format('colorscheme ' .. colorSchemes.onedark))

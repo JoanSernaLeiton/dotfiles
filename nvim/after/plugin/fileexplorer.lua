@@ -4,18 +4,16 @@ require("nvim-tree").setup({
 	renderer = {
 		icons = {
 			show = {
-				folder = false,
+				folder = true,
 				folder_arrow = true,
-				file = false,
+				file = true,
 				git = true
 			},
 			glyphs = {
-				folder = {
-					
-				}	
+				folder = {}	
 			}
 		}
 	}
 })
 
-vim.keymap.set("n","<C-b>",":NvimTreeFindFile")
+vim.keymap.set("n","<C-b>",":NvimTreeFindFile<CR>")

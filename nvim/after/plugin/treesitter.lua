@@ -1,7 +1,7 @@
-require'nvim-treesiter.configs'.setup {
-    ensure_installed = {"help","cpp","c"},
+require 'nvim-treesitter.configs'.setup {
+    ensure_installed = { "help", "javascript", "typescript", "c", "lua" },
     sync_install = false,
-    auto_install =  true,
+    auto_install = true,
     highlight = {
         enable = true,
         additional_vim_regex_highlighting = false
