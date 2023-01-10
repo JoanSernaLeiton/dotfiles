@@ -7,7 +7,7 @@ require('mason.settings').set({
 local lsp = require('lsp-zero')
 lsp.preset('recommended')
 lsp.set_preferences({
-	suggest_lsp_servers = true
+    suggest_lsp_servers = true
 })
 lsp.setup()
 lsp.nvim_workspace()
@@ -67,6 +67,11 @@ lsp.on_attach(function(client, bufnr)
     vim.keymap.set("n", "<leader>vca", vim.lsp.buf.code_action, opts)
     vim.keymap.set("n", "<leader>vrr", vim.lsp.buf.references, opts)
     vim.keymap.set("n", "<leader>vrn", vim.lsp.buf.rename, opts)
+    vim.keymap.set('n', '<leader>wa', vim.lsp.buf.add_workspace_folder, bufopts)
+    vim.keymap.set('n', '<leader>wr', vim.lsp.buf.remove_workspace_folder, bufopts)
+    vim.keymap.set('n', '<leader>wl', function()
+        print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+    end, bufopts)
     vim.keymap.set("i", "<C-h>", vim.lsp.buf.signature_help, opts)
 end)
 local util = require "lspconfig".util
@@ -76,19 +81,18 @@ local util = require "lspconfig".util
 require 'lspconfig'.angularls.setup {
     root_dir = util.root_pattern("angular.json", "project.json", 'nx.json'),
 }
-require'lspconfig'.eslint.setup {
+require 'lspconfig'.eslint.setup {
     filetypes = { "javascript", "typescript" },
     root_dir = function(fname)
         return util.root_pattern(".eslintrc.json")(fname) or
-        util.root_pattern("tsconfig.json")(fname) or
-        util.root_pattern(".eslintrc.js")(fname)
-            ;
+            util.root_pattern("tsconfig.json")(fname) or
+            util.root_pattern(".eslintrc.js")(fname);
     end,
     init_options = {
         linters = {
             eslint_lsp = {
                 command = "eslint",
-                rootPatterns = { ".eslintrc.json",".eslintrc.js", ".git" },
+                rootPatterns = { ".eslintrc.json", ".eslintrc.js", ".git" },
                 debounce = 100,
                 args = {
                     "--stdin",
@@ -119,6 +123,6 @@ require'lspconfig'.eslint.setup {
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
     vim.lsp.diagnostic.on_publish_diagnostics,
     {
-      virtual_text = true,
+        virtual_text = true,
     }
-  )
+)

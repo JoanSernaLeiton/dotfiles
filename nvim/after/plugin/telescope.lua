@@ -13,6 +13,7 @@ builtin.project_files = function()
 end
 
 vim.keymap.set("n","<C-p>",builtin.project_files,{})
+vim.keymap.set("n","<C-e>","<cmd>Telescope oldfiles<cr>",{})
 vim.keymap.set("n","<C-f>",function()
 	builtin.grep_string({search = vim.fn.input("Grep > ")})
 end)

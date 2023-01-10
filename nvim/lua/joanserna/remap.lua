@@ -12,10 +12,11 @@ vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
 vim.keymap.set("i","jj","<ESC>",opts)
 vim.keymap.set("n","<leader>V",":vsplit<CR>",opts)
 vim.keymap.set("n","ff",":Prettier<CR>",opts)
-vim.keymap.set("n","<C-s>",":w<CR>",opts)
+vim.keymap.set("n","<C-s>",":wa<CR>",opts)
 
 vim.keymap.set("n", "<C-k>", "<cmd>cnext<CR>zz")
-vim.keymap.set("n", "<C-j>", "<cmd>cprev<CR>zz")
+vim.keymap.set("n", "<leader>>>", ":vertical resize +10<CR>")
+vim.keymap.set("n", "<leader><<", ":vertical resize -10<CR>")
 
 -- Clear search highlight
 vim.keymap.set("n","<esc>",":noh<return><esc>",opts)
