@@ -40,6 +40,7 @@ mkdir -p ~/.config ~/.config/nvim ~/.config/nvim/lua
 # Symlinking files
 ln -s ~/dotfiles/zshrc ~/.zshrc
 ln -s ~/dotfiles/tmux.conf ~/.tmux.conf
+ln -s ~/dotfiles/kitty.conf ~/.config/kitty/kitty.conf
 ln -s ~/dotfiles/init.lua ~/.config/nvim/init.lua
 ln -s ~/dotfiles/nvim/lua ~/.config/nvim/lua
 ln -s ~/dotfiles/nvim/after ~/.config/nvim/after

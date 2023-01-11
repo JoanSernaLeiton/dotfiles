@@ -9,6 +9,9 @@ fi
 
 # fnm
 export PATH="/Users/joanserna/Library/Application Support/fnm:$PATH"
+# export CHROME_BIN="/Applications/Google Chrome Dev.app"
+export CHROME_BIN="/Applications/Google Chrome Dev.app/Contents/MacOS/Google Chrome Dev"
+
 eval "`fnm env`"
 alias vim="nvim"
 
