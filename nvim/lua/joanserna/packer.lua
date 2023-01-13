@@ -84,6 +84,11 @@ return require('packer').startup(function(use)
 		'kkoomen/vim-doge',
 		run = ':call doge#install()'
 	}
+	use({
+		"junegunn/fzf",
+		run = ':call fzf#install()'
+	})
+	use("junegunn/fzf.vim")
 	-- Testing
 	use("vim-test/vim-test")
 	if packer_bootstrap then

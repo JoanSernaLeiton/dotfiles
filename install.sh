@@ -42,7 +42,7 @@ ln -s ~/dotfiles/zshrc ~/.zshrc
 ln -s ~/dotfiles/tmux.conf ~/.tmux.conf
 ln -s ~/dotfiles/kitty.conf ~/.config/kitty/kitty.conf
 ln -s ~/dotfiles/init.lua ~/.config/nvim/init.lua
-ln -s ~/dotfiles/nvim/lua ~/.config/nvim/lua
+ln -s ~/dotfiles/nvim/lua/ ~/.config/nvim/lua
 ln -s ~/dotfiles/nvim/after ~/.config/nvim/after
 ln -s ~/dotfiles/coc-settings.json ~/.config/nvim/coc-settings.json
 
@@ -72,6 +72,7 @@ if [[ `uname` == "Linux"   ]]; then
   echo "Installing JetBrains Mono"
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/install_manual.sh)"
   echo "Installing pyenv"
+  /bin/bash -c "$(sudo apt-get install build-essential)"
 fi
 
 if [[ `uname` == "Darwin"   ]]; then

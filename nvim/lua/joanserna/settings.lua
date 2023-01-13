@@ -29,6 +29,9 @@ vim.opt.mouse = "a"
 
 
 vim.opt.clipboard = "unnamedplus"
+vim.opt.foldenable = true
+vim.opt.foldmethod = "indent"
+vim.opt.foldlevel=20
 
 vim.opt.backup = false
 vim.opt.errorbells = false

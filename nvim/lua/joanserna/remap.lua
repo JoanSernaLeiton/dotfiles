@@ -32,3 +32,14 @@ vim.keymap.set("v","<","<gv",{silent = true})
 
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
+
+vim.api.nvim_create_autocmd("FileType", {
+    callback = function()
+        local bufnr = vim.fn.bufnr('%')
+        vim.keymap.set("n", "e", function()
+            vim.api.nvim_command([[execute "normal! \<cr>"]])
+            vim.api.nvim_command(bufnr .. 'bd')
+        end, { buffer = bufnr })
+    end,
+    pattern = "qf",
+})
