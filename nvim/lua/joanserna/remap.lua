@@ -43,3 +43,7 @@ vim.api.nvim_create_autocmd("FileType", {
     end,
     pattern = "qf",
 })
+
+vim.keymap.set("n", "<leader>op", function ()
+    vim.lsp.buf.execute_command({command = "_typescript.organizeImports", arguments = {vim.fn.expand("%:p")}})
+end,opts)
