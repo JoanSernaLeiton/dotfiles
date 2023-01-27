@@ -91,6 +91,12 @@ return require('packer').startup(function(use)
 	use("junegunn/fzf.vim")
 	-- Testing
 	use("vim-test/vim-test")
+        use {
+          'numToStr/Comment.nvim',
+          config = function()
+              require('Comment').setup()
+          end
+        }
 	if packer_bootstrap then
 		require('packer').sync()
 	end
