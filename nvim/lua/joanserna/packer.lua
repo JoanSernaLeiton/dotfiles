@@ -91,6 +91,7 @@ return require('packer').startup(function(use)
 	use("junegunn/fzf.vim")
 	-- Testing
 	use("vim-test/vim-test")
+	use("luochen1990/rainbow")
         use {
           'numToStr/Comment.nvim',
           config = function()

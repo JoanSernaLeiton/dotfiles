@@ -50,3 +50,4 @@ vim.diagnostic.config({
     float = false,
 })
 vim.opt.signcolumn = 'yes'
+vim.rainbow_active = 1
