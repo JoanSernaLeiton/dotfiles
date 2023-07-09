@@ -16,12 +16,12 @@ lsp.ensure_installed({
     "html",
     "cssls",
     "eslint",
-    "sumneko_lua",
+    "lua_ls",
     "angularls",
 })
 
 
-lsp.configure("sumneko_lua", {
+lsp.configure("lua_ls", {
     settings = {
         Lua = {
             diagnostics = {
