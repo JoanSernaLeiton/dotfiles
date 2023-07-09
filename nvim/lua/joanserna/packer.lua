@@ -13,6 +13,9 @@ local packer_bootstrap = ensure_packer()
 
 return require('packer').startup(function(use)
 	use 'wbthomason/packer.nvim'
+        use 'aklt/plantuml-syntax'
+        use 'weirongxu/plantuml-previewer.vim'
+        use 'tyru/open-browser.vim'
 	-- My plugins here
 	-- use 'foo1/bar1.nvim'
 	-- use 'foo2/bar2.nvim'
@@ -31,7 +34,10 @@ return require('packer').startup(function(use)
 	-- Unkown
 	use("kylechui/nvim-surround")
 	-- Loading LSP status
-	use("j-hui/fidget.nvim")
+	use({
+          "j-hui/fidget.nvim",
+          tag = 'legacy'
+        })
 	use('MunifTanjim/prettier.nvim')
 	use("nvim-lua/plenary.nvim")
 	use({
