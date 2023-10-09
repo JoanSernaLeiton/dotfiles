@@ -105,6 +105,10 @@ return require('packer').startup(function(use)
               require('Comment').setup()
           end
         }
+        use 'javiorfo/nvim-soil'
+
+        -- Optional for puml syntax highlighting:
+        use 'javiorfo/nvim-nyctophilia'
 	if packer_bootstrap then
 		require('packer').sync()
 	end
