@@ -1,5 +1,6 @@
 local builtin = require("telescope.builtin")
 local telescope = require('telescope')
+local lga_actions = require("telescope-live-grep-args.actions")
 
 telescope.setup {
 	defaults = {
@@ -12,6 +13,23 @@ telescope.setup {
 		winblend = 20,
 		wrap_results = true, 
 	},
+
+        extensions = {
+          live_grep_args = {
+            auto_quoting = true, -- enable/disable auto-quoting
+            -- define mappings, e.g.
+            mappings = { -- extend mappings
+              i = {
+                ["<C-k>"] = lga_actions.quote_prompt(),
+                ["<C-i>"] = lga_actions.quote_prompt({ postfix = " --iglob " }),
+              },
+            },
+            -- ... also accepts theme settings, for example:
+            -- theme = "dropdown", -- use dropdown theme
+            -- theme = { }, -- use own theme spec
+            -- layout_config = { mirror=true }, -- mirror preview pane
+          }
+        }
 }
 builtin.project_files = function()
 	local opts = {
@@ -26,7 +44,8 @@ builtin.project_files = function()
 end
 
 vim.keymap.set("n","<C-p>",builtin.project_files,{})
-vim.keymap.set("n","<C-e>","<cmd>Telescope oldfiles<cr>",{})
-vim.keymap.set("n","<C-f>",function()
+vim.keymap.set("n","<C-e>",builtin.oldfiles,{})
+--[[ vim.keymap.set("n","<C-f>",function()
 	builtin.grep_string({search = vim.fn.input("Ag ")})
-end)
+end) ]]
+vim.keymap.set("n","<C-f>",telescope.extensions.live_grep_args.live_grep_args,{noremap = true})

@@ -7,18 +7,13 @@ fi
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-# fnm
-export PATH="/Users/joanserna/Library/Application Support/fnm:$PATH"
 # export CHROME_BIN="/Applications/Google Chrome Dev.app"
 export CHROME_BIN="/Applications/Google Chrome Dev.app/Contents/MacOS/Google Chrome Dev"
 
-eval "`fnm env`"
 alias vim="nvim"
 
 # fnm
-export PATH="/Users/joanserna/Library/Application Support/fnm:$PATH"
-eval "$(fnm env --use-on-cd)"
-source /opt/homebrew/opt/powerlevel10k/powerlevel10k.zsh-theme
+source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
 
 plugins=( 
   git
@@ -31,3 +26,11 @@ source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 # Load Angular CLI autocompletion.
 # source <(ng completion script)
+
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+
+# fnm
+export PATH="/Users/joanserna/Library/Application Support/fnm:$PATH"
+eval "`fnm env`"
+ZSH_THEME="powerlevel10k/powerlevel10k" 

@@ -24,6 +24,14 @@ return require('packer').startup(function(use)
 	-- Put this at the end after all plugins
 	-- Packer can manage itself
 	use("wbthomason/packer.nvim")
+-- Lua
+        use {
+          "folke/which-key.nvim",
+          config = function()
+            vim.o.timeout = true
+            vim.o.timeoutlen = 300
+          end
+        }
 	use("matze/vim-move")
 	-- Git packages
 	use("lewis6991/gitsigns.nvim")
@@ -40,14 +48,24 @@ return require('packer').startup(function(use)
         })
 	use('MunifTanjim/prettier.nvim')
 	use("nvim-lua/plenary.nvim")
+	use("nvim-telescope/telescope-live-grep-args.nvim")
+	use("kkharji/sqlite.lua")
+        use {
+          "AckslD/nvim-neoclip.lua",
+          requires = {
+            {'nvim-telescope/telescope.nvim'},
+            {'kkharji/sqlite.lua', module = 'sqlite'},
+          },
+          config = function()
+            require('neoclip').setup()
+          end,
+        }
 	use({
 		"VonHeikemen/lsp-zero.nvim",
 		requires = {
 			-- LSP Support
 			{ "neovim/nvim-lspconfig" },
 			{ "williamboman/mason.nvim" },
-			{ "jose-elias-alvarez/null-ls.nvim" },
-			{ "jayp0521/mason-null-ls.nvim" },
 			{ "williamboman/mason-lspconfig.nvim" },
 			-- Autocompletion
 			{ "hrsh7th/nvim-cmp" },
@@ -61,6 +79,12 @@ return require('packer').startup(function(use)
 			{ "rafamadriz/friendly-snippets" },
 		},
 	})
+        use({
+          "stevearc/conform.nvim",
+          config = function()
+            require("conform").setup()
+          end,
+        })
 	use('mbbill/undotree')
 	use("nvim-tree/nvim-web-devicons")
 	-- Status Line
@@ -71,8 +95,14 @@ return require('packer').startup(function(use)
 	-- File Explorer
 	use({
 		"nvim-telescope/telescope.nvim",
-		tag = "0.1.0",
-		requires = { { "nvim-lua/plenary.nvim" }, }
+		branch = "0.1.x",
+		requires = {
+                  { "nvim-lua/plenary.nvim" },
+                  { "nvim-telescope/telescope-live-grep-args.nvim" },
+                },
+                config = function()
+                  require("telescope").load_extension("live_grep_args")
+                end
 	})
 	-- File Explorer
 	use({
@@ -95,7 +125,7 @@ return require('packer').startup(function(use)
 		"junegunn/fzf",
 		run = ':call fzf#install()'
 	})
-	use("junegunn/fzf.vim")
+        use { 'nvim-telescope/telescope-fzf-native.nvim', run = 'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build' }
 	-- Testing
 	use("vim-test/vim-test")
 	use("luochen1990/rainbow")
