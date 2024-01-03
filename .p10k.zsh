@@ -203,7 +203,6 @@ typeset -g POWERLEVEL9K_CONFIG_FILE=${${(%):-%x}:a}
 
 plugins=( 
   git
-  zsh-autosuggestions
 )
 export KITTY_LISTEN_ON=unix:/tmp/mykitty
 export CHROME_BIN="/Applications/Google Chrome Dev.app/Contents/MacOS/Google Chrome Dev"

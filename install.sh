@@ -3,38 +3,37 @@
 if [[ `uname` == "Linux"   ]]; then
   echo "Linux detected. Using Linux config..."
   echo "Installing zsh..."
-  sudo apt install zsh
+  sudo apt install zsh -y
   echo "Changing shell to zsh"
   sudo chsh -s $(which zsh)
-  # Adding homebrew to zprofile
-  echo 'eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)' >> /home/charlie/.zprofile
-  eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
-  echo "Installing PyEnv"
-  curl https://pyenv.run | bash
+  echo "Installing curl"
+  sudo apt install curl -y
+  echo "Installing homebrew"
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  echo "Adding homebrew to PATH"
+  (echo; echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"') >> /home/joanserna/.zshrc
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  sudo apt-get install build-essential -y
+  brew install gcc
 fi
 
 echo "Installing Oh my zsh"
- sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-echo "Installing Homebrew"
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-
-echo '# Set PATH, MANPATH, etc., for Homebrew.' >> /Users/joanserna/.zprofile
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/joanserna/.zprofile
-eval "$(/opt/homebrew/bin/brew shellenv)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
 echo "Installing Python"
 brew install python
-pip3 install --user pipenv
+python3.11 -m pip install --upgrade pip
+pip install --user pipenv
 
 echo "Removing existing dotfiles"
-# remove files if they already exist
-rm -rf ~/.config/nvim/coc-settings.json
-rm -rf ~/.vim ~/.vimrc ~/.zshrc ~/.tmux ~/.tmux.conf ~/.config/nvim 2> /dev/null
+rm -rf ~/.zshrc
 
+
+ 
 echo "Creating symlinks"
+
 # Neovim expects some folders already exist
-mkdir -p ~/.config ~/.config/nvim ~/.config/nvim/lua
+mkdir -p ~/.config ~/.config/nvim ~/.config/nvim/lua ~/.config/kitty
 
 
 # Symlinking files
@@ -42,12 +41,13 @@ ln -s ~/dotfiles/zshrc ~/.zshrc
 ln -s ~/dotfiles/tmux.conf ~/.tmux.conf
 ln -s ~/dotfiles/kitty.conf ~/.config/kitty/kitty.conf
 ln -s ~/dotfiles/init.lua ~/.config/nvim/init.lua
-ln -s ~/dotfiles/nvim/lua/ ~/.config/nvim/lua
+ln -s ~/dotfiles/nvim/lua/ ~/.config/nvim/
 ln -s ~/dotfiles/nvim/after ~/.config/nvim/after
 ln -s ~/dotfiles/coc-settings.json ~/.config/nvim/coc-settings.json
 
+echo "installing Kitty terminal"
+curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
 # Italics and true color profile for tmux
-tic -x tmux.terminfo
 
 brew install ripgrep
 brew install tmux
@@ -55,24 +55,18 @@ brew install neovim
 brew install ag
 brew install fzf
 brew install bat
-brew install thefuck
 brew install go
-brew install llvm
 brew install gcc
-brew install gdb
 brew install bazel
 brew install cmake
 
 # FORMATTERS
 brew install shfmt
-brew install clang-format
 
 if [[ `uname` == "Linux"   ]]; then
   echo "Linux detected. Using Linux config..."
   echo "Installing JetBrains Mono"
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/install_manual.sh)"
-  echo "Installing pyenv"
-  /bin/bash -c "$(sudo apt-get install build-essential)"
 fi
 
 if [[ `uname` == "Darwin"   ]]; then
@@ -94,15 +88,24 @@ if [[ `uname` == "Darwin"   ]]; then
   brew install reattach-to-user-namespace
 fi
 
+echo "Installing power level 10k"
+brew install powerlevel10k
+echo "source $(brew --prefix)/share/powerlevel10k/powerlevel10k.zsh-theme" >>~/.zshrc
+echo "Installing zsh-syntax-highlighting"
+brew install zsh-syntax-highlighting
+source /home/linuxbrew/.linuxbrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+echo "source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> ${ZDOTDIR:-$HOME}/.zshrc
+
+echo "Installing zsh-autosuggestions"
+brew install zsh-autosuggestions
+source /home/linuxbrew/.linuxbrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+echo "source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh" >> ${ZDOTDIR:-$HOME}/.zshrc
+
 # FZF shortcuts
 $(brew --prefix)/opt/fzf/install
 
 # install fnm
 curl -fsSL https://fnm.vercel.app/install | bash
-
-# install Paq - Neovim Plugin Manageri
-git clone --depth=1 https://github.com/savq/paq-nvim.git \
-    "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/pack/paqs/start/paq-nvim
 
 pip3 install pynvim
 

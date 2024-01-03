@@ -12,14 +12,9 @@ export CHROME_BIN="/Applications/Google Chrome Dev.app/Contents/MacOS/Google Chr
 
 alias vim="nvim"
 
-# fnm
-source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
-
 plugins=( 
   git
 )
-source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
@@ -29,8 +24,14 @@ source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
+ZSH_THEME="powerlevel10k/powerlevel10k" 
+source /home/linuxbrew/.linuxbrew/share/powerlevel10k/powerlevel10k.zsh-theme
+source /home/linuxbrew/.linuxbrew/share/powerlevel10k/powerlevel10k.zsh-theme
 
 # fnm
-export PATH="/Users/joanserna/Library/Application Support/fnm:$PATH"
+export PATH="/home/joanserna/.local/share/fnm:$PATH"
 eval "`fnm env`"
-ZSH_THEME="powerlevel10k/powerlevel10k" 
+
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+source /home/linuxbrew/.linuxbrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
