@@ -1,9 +1,8 @@
 local wk = require("which-key")
-wk.add({
-
-})
 local opts = {
+  notify = false
 }
 local mappings = {
+
 }
-wk.register(mappings, opts)
+wk.add(mappings, opts)

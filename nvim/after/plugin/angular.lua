@@ -1,6 +1,7 @@
 vim.filetype.add({
     pattern = {
         [".*%.component%.html"] = "angular.html", -- Sets the filetype to `angular.html` if it matches the pattern
+        [".*.html"] = "html", -- Sets the filetype to `angular.html` if it matches the pattern
     },
 })
 

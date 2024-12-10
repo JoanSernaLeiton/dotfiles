@@ -10,7 +10,7 @@ lsp_zero.preset('recommended')
 lsp_zero.set_preferences({
   suggest_lsp_servers = true
 })
-lsp_zero.setup()
+-- lsp_zero.setup()
 local mason = require('mason')
 mason.setup({})
 local masonLsp = require('mason-lspconfig')
@@ -18,7 +18,7 @@ local util = require "lspconfig".util
 masonLsp.setup({
   ensure_installed = {
     "angularls",
-    "tsserver",
+    "ts_ls",
     "html",
     "cssls",
     "eslint",
@@ -80,6 +80,7 @@ lsp_zero.configure("lua_ls", {
 })
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
+capabilities.textDocument.completion.completionItem.snippetSupport = true
 local cmp = require("cmp")
 local luasnip = require 'luasnip'
 local cmp_action = require('lsp-zero').cmp_action()
@@ -142,7 +143,7 @@ lsp_zero.on_attach(function(client, bufnr)
   vim.keymap.set('n', '<leader>wl', function()
     print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
   end, {buffer = bufnr, remap = false, desc = "Lists all LSP workspace folders"})
-  vim.keymap.set("n", "<C-h>", vim.lsp.buf.signature_help, {buffer = bufnr, remap = false, desc = "Displays signature help using LSP"})
+  vim.keymap.set("n", "<leader>h", vim.lsp.buf.signature_help, {buffer = bufnr, remap = false, desc = "Displays signature help using LSP"})
   vim.keymap.set('n', 'so', require('telescope.builtin').lsp_references, {buffer = bufnr, remap = false, desc = "Shows LSP references using Telescope"})
 end)
 
@@ -155,7 +156,18 @@ require 'lspconfig'.angularls.setup {
   filetypes = { 'typescript', 'html', 'typescriptreact', 'typescript.tsx', 'angular.html' }
 }
 
-require 'lspconfig'.tsserver.setup({})
+
+require 'lspconfig'.cssls.setup {}
+require 'lspconfig'.css_variables.setup {}
+require 'lspconfig'.emmet_language_server.setup {}
+require 'lspconfig'.astro.setup {}
+require 'lspconfig'.phpactor.setup {}
+require 'lspconfig'.gopls.setup {}
+--Enable (broadcasting) snippet capability for completion
+require'lspconfig'.html.setup {
+  capabilities = capabilities,
+}
+require 'lspconfig'.ts_ls.setup({})
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
   vim.lsp.diagnostic.on_publish_diagnostics,
   {
