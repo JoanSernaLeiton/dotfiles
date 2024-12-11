@@ -25,13 +25,28 @@ masonLsp.setup({
     "lua_ls"
   },
   handlers = {
-    eslint = function ()
+    eslint = function()
+
       require('lspconfig').eslint.setup({
         filetypes = { "javascript", "typescript", "angular.html", "html" },
         root_dir = function(fname)
-          return util.root_pattern(".eslintrc.json")(fname) or
-              util.root_pattern("tsconfig.json")(fname) or
-              util.root_pattern(".eslintrc.js")(fname);
+          -- Busca primero el archivo de configuración de ESLint
+          local eslint_root = util.root_pattern(
+            '.eslintrc',
+            '.eslintrc.js',
+            '.eslintrc.cjs',
+            '.eslintrc.yaml',
+            '.eslintrc.yml',
+            '.eslintrc.json'
+          )(fname)
+
+          -- Si no encuentra configuración de ESLint, retorna nil para evitar que el servidor se inicie
+          if not eslint_root then
+            return nil
+          end
+
+          -- Si encuentra configuración, usa esa ruta
+          return eslint_root
         end,
         init_options = {
           linters = {
@@ -85,7 +100,7 @@ local cmp = require("cmp")
 local luasnip = require 'luasnip'
 local cmp_action = require('lsp-zero').cmp_action()
 local cmp_select = { behavior = cmp.SelectBehavior.Select }
-cmp.setup{
+cmp.setup {
   window = {
     completion = cmp.config.window.bordered(),
     documentation = cmp.config.window.bordered(),
@@ -119,7 +134,7 @@ cmp.setup{
     end, { 'i', 's' }),
   }),
   sources = {
-    {name = "nvim_lsp"}
+    { name = "nvim_lsp" }
   }
 }
 lsp_zero.on_attach(function(client, bufnr)
@@ -128,23 +143,37 @@ lsp_zero.on_attach(function(client, bufnr)
     -- vim.cmd.LspStop('eslint')
     return
   end
-  vim.keymap.set('n', 'gr', '<cmd>Telescope lsp_references<cr>', {buffer = bufnr, desc = "Shows LSP references using Telescope"})
-  vim.keymap.set("n", "gd", vim.lsp.buf.definition, {buffer = bufnr, remap = false, desc = "Jumps to definition using LSP"})
-  vim.keymap.set("n", "K", vim.lsp.buf.hover, {buffer = bufnr, remap = false, desc = "Displays hover information using LSP"})
-  vim.keymap.set("n", "<leader>vws", vim.lsp.buf.workspace_symbol, {buffer = bufnr, remap = false, desc = "Searches workspace symbols using LSP"})
-  vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, {buffer = bufnr, remap = false, desc = "Displays diagnostic float window"})
-  vim.keymap.set("n", "[d", vim.diagnostic.goto_next, {buffer = bufnr, remap = false, desc = "Navigates to next diagnostic"})
-  vim.keymap.set("n", "]d", vim.diagnostic.goto_prev, {buffer = bufnr, remap = false, desc = "Navigates to previous diagnostic"})
-  vim.keymap.set("n", "<leader>vca", vim.lsp.buf.code_action, {buffer = bufnr, remap = false, desc = "Displays code actions using LSP"})
-  vim.keymap.set("n", "<leader>vrr", vim.lsp.buf.references, {buffer = bufnr, remap = false, desc = "Shows references using LSP"})
-  vim.keymap.set("n", "<leader>vrn", vim.lsp.buf.rename, {buffer = bufnr, remap = false, desc = "Renames symbol using LSP"})
-  vim.keymap.set('n', '<leader>wa', vim.lsp.buf.add_workspace_folder, {buffer = bufnr, remap = false, desc = "Adds folder to LSP workspace"})
-  vim.keymap.set('n', '<leader>wr', vim.lsp.buf.remove_workspace_folder, {buffer = bufnr, remap = false, desc = "Removes folder from LSP workspace"})
+  vim.keymap.set('n', 'gr', '<cmd>Telescope lsp_references<cr>',
+    { buffer = bufnr, desc = "Shows LSP references using Telescope" })
+  vim.keymap.set("n", "gd", vim.lsp.buf.definition,
+    { buffer = bufnr, remap = false, desc = "Jumps to definition using LSP" })
+  vim.keymap.set("n", "K", vim.lsp.buf.hover,
+    { buffer = bufnr, remap = false, desc = "Displays hover information using LSP" })
+  vim.keymap.set("n", "<leader>vws", vim.lsp.buf.workspace_symbol,
+    { buffer = bufnr, remap = false, desc = "Searches workspace symbols using LSP" })
+  vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float,
+    { buffer = bufnr, remap = false, desc = "Displays diagnostic float window" })
+  vim.keymap.set("n", "[d", vim.diagnostic.goto_next,
+    { buffer = bufnr, remap = false, desc = "Navigates to next diagnostic" })
+  vim.keymap.set("n", "]d", vim.diagnostic.goto_prev,
+    { buffer = bufnr, remap = false, desc = "Navigates to previous diagnostic" })
+  vim.keymap.set("n", "<leader>vca", vim.lsp.buf.code_action,
+    { buffer = bufnr, remap = false, desc = "Displays code actions using LSP" })
+  vim.keymap.set("n", "<leader>vrr", vim.lsp.buf.references,
+    { buffer = bufnr, remap = false, desc = "Shows references using LSP" })
+  vim.keymap.set("n", "<leader>vrn", vim.lsp.buf.rename,
+    { buffer = bufnr, remap = false, desc = "Renames symbol using LSP" })
+  vim.keymap.set('n', '<leader>wa', vim.lsp.buf.add_workspace_folder,
+    { buffer = bufnr, remap = false, desc = "Adds folder to LSP workspace" })
+  vim.keymap.set('n', '<leader>wr', vim.lsp.buf.remove_workspace_folder,
+    { buffer = bufnr, remap = false, desc = "Removes folder from LSP workspace" })
   vim.keymap.set('n', '<leader>wl', function()
     print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-  end, {buffer = bufnr, remap = false, desc = "Lists all LSP workspace folders"})
-  vim.keymap.set("n", "<leader>h", vim.lsp.buf.signature_help, {buffer = bufnr, remap = false, desc = "Displays signature help using LSP"})
-  vim.keymap.set('n', 'so', require('telescope.builtin').lsp_references, {buffer = bufnr, remap = false, desc = "Shows LSP references using Telescope"})
+  end, { buffer = bufnr, remap = false, desc = "Lists all LSP workspace folders" })
+  vim.keymap.set("n", "<leader>h", vim.lsp.buf.signature_help,
+    { buffer = bufnr, remap = false, desc = "Displays signature help using LSP" })
+  vim.keymap.set('n', 'so', require('telescope.builtin').lsp_references,
+    { buffer = bufnr, remap = false, desc = "Shows LSP references using Telescope" })
 end)
 
 
@@ -164,7 +193,7 @@ require 'lspconfig'.astro.setup {}
 require 'lspconfig'.phpactor.setup {}
 require 'lspconfig'.gopls.setup {}
 --Enable (broadcasting) snippet capability for completion
-require'lspconfig'.html.setup {
+require 'lspconfig'.html.setup {
   capabilities = capabilities,
 }
 require 'lspconfig'.ts_ls.setup({})
