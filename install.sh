@@ -40,6 +40,8 @@ mkdir -p ~/.config ~/.config/nvim ~/.config/nvim/lua ~/.config/kitty
 ln -s ~/dotfiles/zshrc ~/.zshrc
 ln -s ~/dotfiles/tmux.conf ~/.tmux.conf
 ln -s ~/dotfiles/kitty.conf ~/.config/kitty/kitty.conf
+ln -s ~/dotfiles/theme.conf ~/.config/kitty/theme.conf
+ln -s ~/dotfiles/kitty-themes ~/.config/kitty/kitty-themes
 ln -s ~/dotfiles/init.lua ~/.config/nvim/init.lua
 ln -s ~/dotfiles/nvim/lua/ ~/.config/nvim/
 ln -s ~/dotfiles/nvim/after ~/.config/nvim/after
