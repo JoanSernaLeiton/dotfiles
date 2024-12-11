@@ -80,3 +80,6 @@ vim.keymap.set("n", "<leader>tc", function()
 end, { desc = "Search Git commits with preview" })
 vim.keymap.set("n", "<C-f>", telescope.extensions.live_grep_args.live_grep_args,
   { noremap = true, desc = "Search with arguments using Live Grep" })
+
+
+require('telescope').load_extension('fzf')
