@@ -11,7 +11,7 @@ vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
 
 vim.keymap.set("i","jj","<ESC>",opts)
 vim.keymap.set("n","<leader>V",":vsplit<CR>",opts)
-vim.keymap.set("n","ff",":Prettier<CR>",opts)
+-- vim.keymap.set("n","ff",":Prettier<CR>",opts)
 vim.keymap.set("n","<C-s>",":wa<CR>",opts)
 
 vim.keymap.set("n", "<C-k>", "<cmd>cnext<CR>zz")
@@ -32,6 +32,11 @@ vim.keymap.set("v","<","<gv",{silent = true})
 
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
+
+-- navigate between buffers
+vim.keymap.set('n', '<C-h>', ':bprev<CR>', opts)
+vim.keymap.set('n', '<C-l>', ':bnext<CR>', opts)
+vim.keymap.set('n', '<leader>qt', ':bd<CR>', opts)
 
 vim.api.nvim_create_autocmd("FileType", {
     callback = function()
