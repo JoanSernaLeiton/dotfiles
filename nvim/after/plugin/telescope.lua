@@ -4,31 +4,53 @@ local lga_actions = require("telescope-live-grep-args.actions")
 require('telescope').load_extension 'fzf'
 telescope.setup {
   defaults = {
-    layout_strategy = 'horizontal',
-    layout_config = {
-      vertical = { width = 0.95, anchor = 2 }
-    },
     file_ignore_patterns = { '.git/*', 'node_modules', 'env/*' },
     color_devicons = true,
     winblend = 20,
     wrap_results = true,
-  },
-
-  extensions = {
-    live_grep_args = {
-      auto_quoting = true,       -- enable/disable auto-quoting
-      -- define mappings, e.g.
-      mappings = {               -- extend mappings
-        i = {
-          ["<C-k>"] = lga_actions.quote_prompt(),
-          ["<C-i>"] = lga_actions.quote_prompt({ postfix = " --iglob " }),
-        },
+    sorting_strategy = "descending",
+    mappings = {
+      i = {
+        ["<C-j>"] = "move_selection_next",
+        ["<C-k>"] = "move_selection_previous",
+        ["<C-u>"] = "preview_scrolling_up",
+        ["<C-d>"] = "preview_scrolling_down",
+        ["<esc>"] = "close",
       },
-      -- ... also accepts theme settings, for example:
-      -- theme = "dropdown", -- use dropdown theme
-      -- theme = { }, -- use own theme spec
-      -- layout_config = { mirror=true }, -- mirror preview pane
-    }
+    },
+  },
+  pickers = {
+    -- Make frequently used pickers faster with dropdown theme
+    find_files = {
+      theme = "dropdown",
+      previewer = false,
+    },
+    buffers = {
+      theme = "dropdown",
+      previewer = false,
+      sort_lastused = true,
+    },
+    -- Keep your existing LSP references config
+    lsp_references = {
+      -- theme = "dropdown",
+      path_display = { "smart" },
+      fname_width = 80,
+      layout_config = {
+        width = 0.95,
+        horizontal = {
+          preview_width = 0.3,
+          results_width = 0.7,
+        }
+      },
+      show_line = true,
+    },
+    -- Add configuration for git pickers
+    git_status = {
+      layout_strategy = "vertical",
+      layout_config = {
+        preview_height = 0.6,
+      },
+    },
   }
 }
 builtin.project_files = function()
@@ -45,12 +67,35 @@ end
 
 vim.keymap.set("n", "<C-p>", builtin.project_files, { desc = "List project files using Telescope" })
 vim.keymap.set("n", "<C-e>", builtin.oldfiles, { desc = "List recently opened files using Telescope" })
-vim.keymap.set("n", "<leader>tb", function() require('telescope.builtin').buffers { sort_lastused = true } end,
-  { desc = "List open buffers sorted by last usage" })
+vim.keymap.set("n", "<leader>bb", function()
+  require('telescope.builtin').buffers({
+    sort_lastused = true,
+    previewer = false,
+    theme = "dropdown"
+  })
+end, { desc = "List buffers" })
 vim.keymap.set("n", "<leader>tf", function() require('telescope.builtin').find_files { previewer = false } end,
   { desc = "Find files without preview" })
-vim.keymap.set("n", "<leader>tb", function() require('telescope.builtin').current_buffer_fuzzy_find() end,
-  { desc = "Fuzzy find text in current buffer" })
+vim.keymap.set("n", "<leader>bf", function()
+  require('telescope.builtin').current_buffer_fuzzy_find({
+    previewer = false,
+    theme = "dropdown"
+  })
+end, { desc = "Fuzzy find in buffer" })
+vim.keymap.set("n", "<leader>tfw", function()
+  require('telescope.builtin').grep_string({
+    word_match = "-w",
+    only_sort_text = true,
+    layout_strategy = 'vertical',
+    search = vim.fn.expand("<cword>")
+  })
+end, { desc = "Search word under cursor" })
+vim.keymap.set("n", "<leader>/", function()
+  require('telescope.builtin').current_buffer_fuzzy_find({
+    previewer = true,
+    theme = "dropdown"
+  })
+end, { desc = "Search in current buffer" })
 vim.keymap.set("n", "<leader>th", function() require('telescope.builtin').help_tags() end, { desc = "List help tags" })
 vim.keymap.set("n", "<leader>tt", function() require('telescope.builtin').tags() end, { desc = "List tags in project" })
 vim.keymap.set("n", "<leader>ts", function() require('telescope.builtin').grep_string() end,
