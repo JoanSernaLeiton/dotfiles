@@ -243,14 +243,14 @@ mason_lspconfig.setup({
     eslint = function()
       if any_file_exists({ '.eslintrc.js', '.eslintrc.json', '.eslintrc', '.eslintrc.yml', '.eslintrc.yaml' }) then
         require('lspconfig').eslint.setup({
-          on_attach = function(client, bufnr)
-            lsp_attach(client, bufnr)
-            -- Auto fix on save
-            vim.api.nvim_create_autocmd("BufWritePre", {
-              buffer = bufnr,
-              command = "EslintFixAll",
-            })
-          end,
+          -- on_attach = function(client, bufnr)
+          --   lsp_attach(client, bufnr)
+          --   -- Auto fix on save
+          --   vim.api.nvim_create_autocmd("BufWritePre", {
+          --     buffer = bufnr,
+          --     command = "EslintFixAll",
+          --   })
+          -- end,
           settings = {
             format = true,
           },
