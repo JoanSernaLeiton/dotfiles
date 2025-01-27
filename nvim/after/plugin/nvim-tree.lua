@@ -98,6 +98,7 @@ require("nvim-tree").setup({
   },
   git = {
     enable = true,
+    ignore = false,
     -- Add these for better git integration
     timeout = 400,       -- Faster git status updates
     show_on_dirs = true, -- Shows git status on directories
@@ -166,6 +167,7 @@ require("nvim-tree").setup({
       "^.git$",
       "^.DS_Store$"
     },
+    dotfiles = false
   },
   diagnostics = {
     -- Add diagnostics support
