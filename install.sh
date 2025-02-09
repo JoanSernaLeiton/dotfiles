@@ -1,118 +1,122 @@
 #!/usr/bin/env bash
 
-if [[ `uname` == "Linux"   ]]; then
-  echo "Linux detected. Using Linux config..."
-  echo "Installing zsh..."
-  sudo apt install zsh -y
-  echo "Changing shell to zsh"
-  sudo chsh -s $(which zsh)
-  echo "Installing curl"
-  sudo apt install curl -y
-  echo "Installing homebrew"
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  echo "Adding homebrew to PATH"
-  (echo; echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"') >> /home/joanserna/.zshrc
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-  sudo apt-get install build-essential -y
-  brew install gcc
-fi
+set -e  # Exit on error
 
-echo "Installing Oh my zsh"
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+# Helper functions
+setup_directories() {
+    echo "Creating necessary directories..."
+    mkdir -p ~/.config/{nvim,kitty} \
+             ~/.local/share/nvim/{backup,swap,undo} \
+             ~/go/{bin,src,pkg}
+}
 
-echo "Installing Python"
-brew install python
-python3.11 -m pip install --upgrade pip
-pip install --user pipenv
+backup_existing_config() {
+    local timestamp=$(date +%Y%m%d_%H%M%S)
+    echo "Backing up existing Neovim configuration..."
+    
+    if [ -d ~/.config/nvim ]; then
+        mv ~/.config/nvim ~/.config/nvim.bak.$timestamp
+    fi
+}
 
-echo "Removing existing dotfiles"
-rm -rf ~/.zshrc
+setup_neovim() {
+    echo "Setting up Neovim configuration..."
+    
+    # Remove existing symlinks if they exist
+    rm -f ~/.config/nvim/init.lua
+    rm -rf ~/.config/nvim/lua
+    rm -rf ~/.config/nvim/after
+    
+    # Create the necessary directories
+    mkdir -p ~/.config/nvim/{lua,after}
+    
+    # Create symlinks for the main structure
+    ln -sf ~/dotfiles/nvim/init.lua ~/.config/nvim/init.lua
+    ln -sf ~/dotfiles/nvim/lua ~/.config/nvim/lua
+    ln -sf ~/dotfiles/nvim/after ~/.config/nvim/after
+    
+    # Ensure correct permissions
+    chmod 755 ~/.config/nvim
+    chmod 644 ~/.config/nvim/init.lua
+}
 
+install_linux_dependencies() {
+    echo "Linux detected. Installing dependencies..."
+    sudo apt install zsh curl build-essential -y
+    sudo chsh -s $(which zsh)
+    
+    # Install Homebrew
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshrc
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    brew install gcc
+}
 
- 
-echo "Creating symlinks"
+install_mac_dependencies() {
+    echo "MacOS detected. Setting up Mac-specific configurations..."
+    defaults write -g ApplePressAndHoldEnabled -bool false
+    
+    brew tap homebrew/cask-fonts
+    brew install --cask font-fira-code \
+                      font-jetbrains-mono \
+                      font-meslo-lg-nerd-font \
+                      font-iosevka \
+                      rectangle
+    
+    brew install deno reattach-to-user-namespace
+}
 
-# Neovim expects some folders already exist
-mkdir -p ~/.config ~/.config/nvim ~/.config/nvim/lua ~/.config/kitty
+install_common_packages() {
+    echo "Installing common packages..."
+    
+    # Core tools
+    brew install python neovim tmux ripgrep fzf bat go gcc cmake bazel ag
+    
+    # Formatters
+    brew install shfmt
+    
+    # Shell enhancements
+    brew install powerlevel10k zsh-syntax-highlighting zsh-autosuggestions
+    
+    # Setup shell configurations
+    echo "source $(brew --prefix)/share/powerlevel10k/powerlevel10k.zsh-theme" >> ~/.zshrc
+    echo "source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> ~/.zshrc
+    echo "source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh" >> ~/.zshrc
+}
 
+setup_python() {
+    echo "Setting up Python environment..."
+    python3 -m pip install --upgrade pip
+    pip install --user pipenv pynvim
+}
 
-# Symlinking files
-ln -s ~/dotfiles/zshrc ~/.zshrc
-ln -s ~/dotfiles/tmux.conf ~/.tmux.conf
-ln -s ~/dotfiles/kitty.conf ~/.config/kitty/kitty.conf
-ln -s ~/dotfiles/theme.conf ~/.config/kitty/theme.conf
-ln -s ~/dotfiles/kitty-themes ~/.config/kitty/kitty-themes
-ln -s ~/dotfiles/init.lua ~/.config/nvim/init.lua
-ln -s ~/dotfiles/nvim/lua/ ~/.config/nvim/
-ln -s ~/dotfiles/nvim/after ~/.config/nvim/after
-ln -s ~/dotfiles/coc-settings.json ~/.config/nvim/coc-settings.json
+main() {
+    # Initial setup
+    setup_directories
+    backup_existing_config
+    
+    # OS-specific setup
+    if [[ $(uname) == "Linux" ]]; then
+        install_linux_dependencies
+    elif [[ $(uname) == "Darwin" ]]; then
+        install_mac_dependencies
+    fi
+    
+    # Common installations
+    install_common_packages
+    setup_python
+    
+    # Neovim setup
+    setup_neovim
+    
+    # Additional tools
+    curl -fsSL https://fnm.vercel.app/install | bash
+    $(brew --prefix)/opt/fzf/install
+    
+    # Create vim alias
+    echo 'alias vim="nvim"' >> ~/.zshrc
+    
+    echo "Installation completed successfully!"
+}
 
-echo "installing Kitty terminal"
-curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
-# Italics and true color profile for tmux
-
-brew install ripgrep
-brew install tmux
-brew install neovim
-brew install ag
-brew install fzf
-brew install bat
-brew install go
-brew install gcc
-brew install bazel
-brew install cmake
-
-# FORMATTERS
-brew install shfmt
-
-if [[ `uname` == "Linux"   ]]; then
-  echo "Linux detected. Using Linux config..."
-  echo "Installing JetBrains Mono"
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/install_manual.sh)"
-fi
-
-if [[ `uname` == "Darwin"   ]]; then
-  echo "Mac detected. Using Mac config..."
-
-  # disable key repeat
-  defaults write -g ApplePressAndHoldEnabled -bool false
-
-  brew tap homebrew/cask-fonts
-
-  # casks only work in mac
-  brew install --cask font-fira-code
-  brew install --cask font-jetbrains-mono
-  brew install --cask font-meslo-lg-nerd-font
-  brew install --cask font-iosevka
-  brew install --cask rectangle
-
-  brew install deno # deno brew formula only works with mac
-  brew install reattach-to-user-namespace
-fi
-
-echo "Installing power level 10k"
-brew install powerlevel10k
-echo "source $(brew --prefix)/share/powerlevel10k/powerlevel10k.zsh-theme" >>~/.zshrc
-echo "Installing zsh-syntax-highlighting"
-brew install zsh-syntax-highlighting
-source /home/linuxbrew/.linuxbrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-echo "source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> ${ZDOTDIR:-$HOME}/.zshrc
-
-echo "Installing zsh-autosuggestions"
-brew install zsh-autosuggestions
-source /home/linuxbrew/.linuxbrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-echo "source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh" >> ${ZDOTDIR:-$HOME}/.zshrc
-
-# FZF shortcuts
-$(brew --prefix)/opt/fzf/install
-
-# install fnm
-curl -fsSL https://fnm.vercel.app/install | bash
-
-pip3 install pynvim
-
-# Go setup
-mkdir -p $HOME/go/{bin,src,pkg}
-
-# Writting vim will launch nvim
-alias vim="nvim"
+main "$@"

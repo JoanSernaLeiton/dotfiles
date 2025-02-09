@@ -1,7 +1,7 @@
 require('lualine').setup {
   options = {
     theme = 'onedark',
-    disabled_filetypes = { 'packer', 'NvimTree' }
+    disabled_filetypes = { 'NvimTree' }
   },
   sections = {
     lualine_c = {
@@ -31,7 +31,6 @@ require('lualine').setup {
         filetype_names = {
           TelescopePrompt = 'Telescope',
           dashboard = 'Dashboard',
-          packer = 'Packer',
           fzf = 'FZF',
           alpha = 'Alpha'
         },

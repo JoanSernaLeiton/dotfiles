@@ -1,0 +1,13 @@
+# Neovim
+.netrwhist
+*.swp
+*.swo
+lazy-lock.json
+nvim/plugin/packer_compiled.lua
+.config/nvim/lazy-rocks/
+.local/share/nvim/lazy-rocks/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class

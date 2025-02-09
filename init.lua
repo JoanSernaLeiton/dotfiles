@@ -1,45 +1,27 @@
-require("joanserna")
-
--- require('plugins')
--- require('settings')
-
--- packages config
-
--- require('plugins.treesitter')
--- require('plugins.smallConfigs')
--- require('plugins.codi')
--- require('plugins.fzf')
--- require('plugins.quickUI')
--- require('plugins.startify')
--- require('plugins.multiCursor')
--- require('plugins.indentLines')
--- require('plugins.coc')
-
--- end packages config
-
--- require('keybindings')
--- require('colors')
--- require('customFunctions')
-
-local colorSchemes = {
-    onedark = 'onedark',
-    blue = 'blue',
-}
-
-vim.cmd(string.format('colorscheme ' .. colorSchemes.onedark))
-
--- Make background transparent in both normal and inactive windows
-vim.api.nvim_set_hl(0, "Normal", { bg = "NONE" })
-vim.api.nvim_set_hl(0, "SignColumn", { bg = "NONE" })
-vim.api.nvim_set_hl(0, "NormalNC", { bg = "NONE" })  -- Inactive window background
-vim.api.nvim_create_autocmd("BufEnter", {
-  callback = function()
-    local cwd = vim.fn.getcwd()
-    -- Dividir el path en partes
-    local parts = vim.split(cwd, "/")
-    -- Obtener las dos últimas partes o solo la última si no hay más
-    local title = table.concat(parts, "/", math.max(#parts - 1, 1), #parts)
-    vim.opt.titlestring = title
-    vim.opt.title = true
+-- Bootstrap lazy.nvim
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
+  local lazyrepo = "https://github.com/folke/lazy.nvim.git"
+  local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
+  if vim.v.shell_error ~= 0 then
+    vim.api.nvim_echo({
+      { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
+      { out, "WarningMsg" },
+      { "\nPress any key to exit..." },
+    }, true, {})
+    vim.fn.getchar()
+    os.exit(1)
   end
+end
+vim.opt.rtp:prepend(lazypath)
+-- Now safe to require lazy
+require("lazy").setup({
+  spec = {
+    { import = "joanserna.plugins" },
+  },
+  defaults = {
+    lazy = true,
+  },
 })
+require('joanserna')
+
