@@ -35,6 +35,7 @@ return {
   { "petertriho/nvim-scrollbar" },
   { "nvim-lua/plenary.nvim" },
   { "mbbill/undotree" },
+  { "github/copilot.vim",       lazy = false },
   {
     "startup-nvim/startup.nvim",
     dependencies = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim", "nvim-telescope/telescope-file-browser.nvim" },
@@ -43,10 +44,8 @@ return {
     end
   },
   {
-    "supermaven-inc/supermaven-nvim",
-    config = function()
-      require("supermaven-nvim").setup({})
-    end,
+    'onsails/lspkind-nvim',
+    lazy = false
   },
   -- Git integration
   {

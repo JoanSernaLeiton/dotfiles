@@ -29,7 +29,7 @@ vim.opt.mouse = "a"
 vim.opt.clipboard = "unnamedplus"
 vim.opt.foldenable = true
 vim.opt.foldmethod = "indent"
-vim.opt.foldlevel=20
+vim.opt.foldlevel = 20
 
 vim.opt.backup = false
 vim.opt.errorbells = false
@@ -40,12 +40,12 @@ vim.opt.incsearch = true
 vim.opt.scrolloff = 8
 vim.opt.colorcolumn = "80"
 vim.diagnostic.config({
-    virtual_text = false,
-    signs = true,
-    update_in_insert = false,
-    underline = true,
-    severity_sort = true,
-    float = false,
+  virtual_text = false,
+  signs = true,
+  update_in_insert = false,
+  underline = true,
+  severity_sort = true,
+  float = false,
 })
 vim.opt.signcolumn = 'yes'
 vim.rainbow_active = 1

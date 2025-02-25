@@ -1,4 +1,5 @@
 -- Bootstrap lazy.nvim
+vim.g.copilot_assume_mapped = true
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local lazyrepo = "https://github.com/folke/lazy.nvim.git"
@@ -16,6 +17,8 @@ end
 vim.opt.rtp:prepend(lazypath)
 -- Now safe to require lazy
 require("lazy").setup({
+
+--
   spec = {
     { import = "joanserna.plugins" },
   },

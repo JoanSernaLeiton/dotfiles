@@ -43,6 +43,7 @@ end
 -- Mason Configuration
 -----------------------------------
 local function setup_mason()
+
   mason.setup({
     ui = {
       border = 'rounded',
@@ -219,7 +220,6 @@ local ServerConfigs = {
       { files = { '.eslintrc.js', '.eslintrc.json', '.eslintrc', '.eslintrc.yml', '.eslintrc.yaml' }, server = 'eslint' },
       { files = { 'angular.json' },                                                                   server = 'angularls' },
       { files = { 'astro.config.mjs', 'astro.config.js' },                                            server = 'astro' },
-      { files = { 'tailwind.config.js', 'tailwind.config.cjs' },                                      server = 'tailwindcss' },
       { files = { 'composer.json', 'artisan', '.php-version' },                                       server = 'intelephense' },
     }
 
@@ -484,10 +484,10 @@ local function setup_completion()
       ['<C-p>'] = cmp.mapping.select_prev_item(),
     }),
     sources = {
-      { name = 'nvim_lsp', priority = 1000 },
-      { name = 'luasnip',  priority = 750 },
-      { name = 'buffer',   priority = 500 },
-      { name = 'path',     priority = 250 },
+      { name = 'nvim_lsp',   priority = 1000 },
+      { name = 'luasnip',    priority = 750 },
+      { name = 'buffer',     priority = 500 },
+      { name = 'path',       priority = 250 },
     },
     formatting = lsp_zero.cmp_format({ details = true }),
   })

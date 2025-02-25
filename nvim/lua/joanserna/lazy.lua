@@ -3,7 +3,7 @@ require("lazy")
 
 -- Initialize lazy with your configuration
 require("lazy").setup({
-  require("joanserna.plugins") 
+  require("joanserna.plugins")
 }, {
   defaults = {
     lazy = true, -- All plugins are lazy-loaded by default
@@ -13,7 +13,7 @@ require("lazy").setup({
   },
   checker = {
     enabled = true, -- Automatically check for plugin updates
-    notify = true, -- Disable update notifications
+    notify = true,  -- Disable update notifications
   },
   change_detection = {
     notify = false, -- Disable notifications when changes are detected
