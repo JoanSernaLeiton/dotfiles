@@ -35,7 +35,6 @@ return {
   { "petertriho/nvim-scrollbar" },
   { "nvim-lua/plenary.nvim" },
   { "mbbill/undotree" },
-  { "github/copilot.vim",       lazy = false },
   {
     "startup-nvim/startup.nvim",
     dependencies = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim", "nvim-telescope/telescope-file-browser.nvim" },
@@ -61,6 +60,28 @@ return {
     'sindrets/diffview.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' }
   },
+
+  {
+    "kdheepak/lazygit.nvim",
+        lazy = true,
+        cmd = {
+            "LazyGit",
+            "LazyGitConfig",
+            "LazyGitCurrentFile",
+            "LazyGitFilter",
+            "LazyGitFilterCurrentFile",
+        },
+        -- optional for floating window border decoration
+        dependencies = {
+            "nvim-lua/plenary.nvim",
+        },
+        -- setting the keybinding for LazyGit with 'keys' is recommended in
+        -- order to load the plugin when the command is run for the first time
+        keys = {
+            { "<leader>lg", "<cmd>LazyGit<cr>", desc = "LazyGit" }
+        }
+  },
+
 
   -- LSP and Completion
   {
@@ -150,6 +171,23 @@ return {
     },
     config = function()
       require('neoclip').setup()
+    end,
+  },
+  {
+    -- Install markdown preview, use npx if available.
+    "iamcco/markdown-preview.nvim",
+    cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
+    ft = { "markdown" },
+    build = function(plugin)
+      if vim.fn.executable "npx" then
+        vim.cmd("!cd " .. plugin.dir .. " && cd app && npx --yes yarn install")
+      else
+        vim.cmd [[Lazy load markdown-preview.nvim]]
+        vim.fn["mkdp#util#install"]()
+      end
+    end,
+    init = function()
+      if vim.fn.executable "npx" then vim.g.mkdp_filetypes = { "markdown" } end
     end,
   },
 }

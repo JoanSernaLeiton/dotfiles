@@ -56,12 +56,10 @@ install_mac_dependencies() {
     echo "MacOS detected. Setting up Mac-specific configurations..."
     defaults write -g ApplePressAndHoldEnabled -bool false
     
-    brew tap homebrew/cask-fonts
     brew install --cask font-fira-code \
                       font-jetbrains-mono \
                       font-meslo-lg-nerd-font \
                       font-iosevka \
-                      rectangle
     
     brew install deno reattach-to-user-namespace
 }

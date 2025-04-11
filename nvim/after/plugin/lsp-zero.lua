@@ -43,7 +43,6 @@ end
 -- Mason Configuration
 -----------------------------------
 local function setup_mason()
-
   mason.setup({
     ui = {
       border = 'rounded',
@@ -60,18 +59,28 @@ end
 -- Diagnostic Configuration
 -----------------------------------
 local function setup_diagnostics()
-  local diagnostic_signs = {
-    { name = "DiagnosticSignError", text = "✘" },
-    { name = "DiagnosticSignWarn", text = "▲" },
-    { name = "DiagnosticSignInfo", text = "»" },
-    { name = "DiagnosticSignHint", text = "⚑" },
-  }
-
-  for _, sign in ipairs(diagnostic_signs) do
-    vim.fn.sign_define(sign.name, { text = sign.text, texthl = sign.name })
-  end
-
+  -- Configure diagnostic signs properly without using deprecated sign_define
   vim.diagnostic.config({
+    signs = {
+      text = {
+        [vim.diagnostic.severity.ERROR] = "✘",
+        [vim.diagnostic.severity.WARN] = "▲",
+        [vim.diagnostic.severity.INFO] = "»",
+        [vim.diagnostic.severity.HINT] = "⚑",
+      },
+      numhl = {
+        [vim.diagnostic.severity.ERROR] = "DiagnosticSignError",
+        [vim.diagnostic.severity.WARN] = "DiagnosticSignWarn",
+        [vim.diagnostic.severity.INFO] = "DiagnosticSignInfo",
+        [vim.diagnostic.severity.HINT] = "DiagnosticSignHint",
+      },
+      texthl = {
+        [vim.diagnostic.severity.ERROR] = "DiagnosticSignError",
+        [vim.diagnostic.severity.WARN] = "DiagnosticSignWarn",
+        [vim.diagnostic.severity.INFO] = "DiagnosticSignInfo",
+        [vim.diagnostic.severity.HINT] = "DiagnosticSignHint",
+      },
+    },
     virtual_text = {
       prefix = '●',
       source = "if_many",
@@ -83,7 +92,6 @@ local function setup_diagnostics()
       header = "",
       prefix = "",
     },
-    signs = true,
     underline = true,
     update_in_insert = false,
     severity_sort = true,
@@ -175,15 +183,15 @@ local function get_lsp_attach_config()
       end
     end
 
-    -- Inlay hints toggle
-    if client.server_capabilities.inlayHintProvider and vim.lsp.inlay_hint then
+    -- Inlay hints toggle - use updated method signature
+    if client:supports_method("textDocument/inlayHint") and vim.lsp.inlay_hint then
       vim.keymap.set('n', '<leader>uh', function()
         vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
       end, { buffer = bufnr, desc = 'Toggle Inlay Hints' })
     end
 
-    -- Format on save if supported
-    if client.supports_method("textDocument/formatting") then
+    -- Format on save if supported - use updated method signature
+    if client:supports_method("textDocument/formatting") then
       vim.api.nvim_create_autocmd("BufWritePre", {
         buffer = bufnr,
         callback = function()
@@ -245,7 +253,7 @@ local ServerConfigs = {
           init_options = {
             hostInfo = 'neovim',
             preferences = {
-              importModuleSpecifierPreference = 'relative',
+              importModuleSpecifierPreference = 'no-relative',
               importModuleSpecifierEnding = 'minimal',
               includeInlayParameterNameHints = 'all',
               includeInlayParameterNameHintsWhenArgumentMatchesName = true,
@@ -330,14 +338,6 @@ local ServerConfigs = {
               ),
               on_attach = get_lsp_attach_config(),
               capabilities = lsp_zero.get_capabilities(),
-              -- on_attach = function(client, bufnr)
-              --   lsp_attach(client, bufnr)
-              --   -- Auto fix on save
-              --   vim.api.nvim_create_autocmd("BufWritePre", {
-              --     buffer = bufnr,
-              --     command = "EslintFixAll",
-              --   })
-              -- end,
               settings = {
                 format = true,
                 workingDirectory = { mode = 'auto' },
@@ -516,7 +516,7 @@ local function main()
   -- Setup completion
   setup_completion()
 
-  -- Setup handlers
+  -- Setup handlers with proper signatures
   vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
     vim.lsp.diagnostic.on_publish_diagnostics,
     { virtual_text = true }
