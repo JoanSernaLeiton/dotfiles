@@ -1,129 +1,198 @@
--- Disable netrw
-vim.g.loaded_newtrw = 1
+-- Disable netrw for better performance
+vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
-
--- Enable 24-bit colors
 vim.opt.termguicolors = true
 
-local function my_on_attach(bufnr)
-  local api = require("nvim-tree.api")
+local api = require("nvim-tree.api")
+local wk = require("which-key")
 
+local function on_attach(bufnr)
   local function opts(desc)
     return { desc = "nvim-tree: " .. desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
   end
 
-  -- Root and Directory Navigation
-  vim.keymap.set('n', '<leader>ntc', api.tree.change_root_to_node, opts('CD'))
-  vim.keymap.set('n', '<leader>nt-', api.tree.change_root_to_parent, opts('Up'))
+  -- WhichKey integration for NvimTree with prefix 'e' for explorer
+  wk.register({
+    -- File operations
+    ["f"] = {
+      name = "File Operations",
+      c = { api.fs.create, "Create" },
+      r = { api.fs.rename, "Rename" },
+      m = { api.fs.rename_full, "Move (Rename Path)" },
+      d = { api.fs.remove, "Delete" },
+      t = { api.fs.trash, "Trash" },
+      x = { api.fs.cut, "Cut" },
+      p = { api.fs.paste, "Paste" },
+      y = { api.fs.copy.node, "Copy" },
+    },
 
-  -- Opening Files
-  vim.keymap.set('n', '<leader>nto', api.node.open.replace_tree_buffer, opts('Open: In Place'))
-  vim.keymap.set('n', '<leader>ntT', api.node.open.tab, opts('Open: New Tab'))
-  vim.keymap.set('n', '<leader>ntv', api.node.open.vertical, opts('Open: Vertical Split'))
-  vim.keymap.set('n', '<leader>nth', api.node.open.horizontal, opts('Open: Horizontal Split'))
-  vim.keymap.set('n', '<leader>nte', api.node.open.edit, opts('Open'))
-  vim.keymap.set('n', '<leader>ntw', api.node.open.preview, opts('Open Preview')) -- Changed from ntp to ntw
-  vim.keymap.set('n', '<CR>', api.node.open.edit, opts('Open'))
+    -- Copy paths (unified with Telescope patterns)
+    ["y"] = {
+      name = "Copy Path",
+      a = { api.fs.copy.absolute_path, "Absolute Path" },
+      r = { api.fs.copy.relative_path, "Relative Path" },
+      n = { api.fs.copy.filename, "Filename" },
+      b = { api.fs.copy.basename, "Basename" },
+    },
 
-  -- File Operations
-  vim.keymap.set('n', '<leader>nta', api.fs.create, opts('Create File Or Directory'))
-  vim.keymap.set('n', '<leader>ntC', api.fs.copy.node, opts('Copy'))
-  vim.keymap.set('n', '<leader>ntd', api.fs.remove, opts('Delete'))
-  vim.keymap.set('n', '<leader>ntD', api.fs.trash, opts('Trash'))
-  vim.keymap.set('n', '<leader>ntr', api.fs.rename, opts('Rename'))
-  vim.keymap.set('n', '<leader>ntR', api.fs.rename_basename, opts('Rename: Basename'))
-  vim.keymap.set('n', '<leader>ntu', api.fs.rename_full, opts('Rename: Full Path'))
-  vim.keymap.set('n', '<leader>ntx', api.fs.cut, opts('Cut'))
-  vim.keymap.set('n', '<leader>ntp', api.fs.paste, opts('Paste'))
+    -- Open - similar style to LSP navigation
+    ["o"] = {
+      name = "Open",
+      e = { api.node.open.edit, "Edit" },
+      v = { api.node.open.vertical, "Vertical Split" },
+      h = { api.node.open.horizontal, "Horizontal Split" },
+      t = { api.node.open.tab, "Tab" },
+      p = { api.node.open.preview, "Preview" },
+    },
 
-  -- Copy Operations
-  vim.keymap.set('n', '<leader>ntya', api.fs.copy.absolute_path, opts('Copy Absolute Path'))
-  vim.keymap.set('n', '<leader>ntyb', api.fs.copy.basename, opts('Copy Basename'))
-  vim.keymap.set('n', '<leader>ntyf', api.fs.copy.filename, opts('Copy Name'))
-  vim.keymap.set('n', '<leader>ntyr', api.fs.copy.relative_path, opts('Copy Relative Path'))
+    -- Navigate (similar to LSP)
+    ["g"] = {
+      name = "Go To",
+      p = { api.node.navigate.parent, "Parent" },
+      n = { api.node.navigate.sibling.next, "Next Sibling" },
+      N = { api.node.navigate.sibling.prev, "Previous Sibling" },
+      f = { api.node.navigate.sibling.first, "First Sibling" },
+      l = { api.node.navigate.sibling.last, "Last Sibling" },
+    },
 
-  -- Navigation
-  vim.keymap.set('n', '<leader>ntj', api.node.navigate.sibling.next, opts('Next Sibling'))
-  vim.keymap.set('n', '<leader>ntk', api.node.navigate.sibling.prev, opts('Previous Sibling'))
-  vim.keymap.set('n', '<leader>ntJ', api.node.navigate.sibling.last, opts('Last Sibling'))
-  vim.keymap.set('n', '<leader>ntK', api.node.navigate.sibling.first, opts('First Sibling'))
-  vim.keymap.set('n', '<leader>ntP', api.node.navigate.parent, opts('Parent Directory'))
+    -- Root management
+    ["r"] = {
+      name = "Root",
+      c = { api.tree.change_root_to_node, "Change Root Here" },
+      p = { api.tree.change_root_to_parent, "Go To Parent" },
+    },
 
-  -- Git Navigation
-  vim.keymap.set('n', ']c', api.node.navigate.git.next, opts('Next Git'))
-  vim.keymap.set('n', '[c', api.node.navigate.git.prev, opts('Prev Git'))
+    -- Telescope integration
+    ["s"] = {
+      name = "Search with Telescope",
+      f = { function()
+        api.tree.close()
+        require("telescope.builtin").find_files()
+      end, "Find Files" },
+      g = { function()
+        api.tree.close()
+        require("telescope.builtin").live_grep()
+      end, "Grep" },
+      b = { function()
+        api.tree.close()
+        require("telescope.builtin").buffers()
+      end, "Buffers" },
+    },
 
-  -- Diagnostics Navigation
-  vim.keymap.set('n', ']e', api.node.navigate.diagnostics.next, opts('Next Diagnostic'))
-  vim.keymap.set('n', '[e', api.node.navigate.diagnostics.prev, opts('Prev Diagnostic'))
+    -- Tree operations
+    ["t"] = {
+      name = "Tree",
+      r = { api.tree.reload, "Refresh" },
+      e = { api.tree.expand_all, "Expand All" },
+      c = { api.tree.collapse_all, "Collapse All" },
+      h = { api.tree.toggle_help, "Help" },
+    },
 
-  -- Tree Operations
-  vim.keymap.set('n', '<leader>ntE', api.tree.expand_all, opts('Expand All'))
-  vim.keymap.set('n', '<leader>ntW', api.tree.collapse_all, opts('Collapse'))
-  vim.keymap.set('n', '<leader>ntR', api.tree.reload, opts('Refresh'))
-  vim.keymap.set('n', '<leader>ntq', api.tree.close, opts('Close'))
-  vim.keymap.set('n', '<C-b>',
-    function() api.tree.toggle({ path = "<args>", find_file = true, update_root = false, focus = true }) end,
-    { desc = "NvimTree Toggle" })
+    -- Filters
+    ["F"] = {
+      name = "Filter",
+      h = { api.tree.toggle_hidden_filter, "Toggle Hidden Files" },
+      g = { api.tree.toggle_gitignore_filter, "Toggle Git Ignored" },
+      c = { api.tree.toggle_git_clean_filter, "Toggle Git Clean" },
+      b = { api.tree.toggle_no_buffer_filter, "Toggle No Buffer" },
+    },
 
-  -- Filters
-  vim.keymap.set('n', '<leader>ntfb', api.tree.toggle_no_buffer_filter, opts('Toggle Filter: No Buffer'))
-  vim.keymap.set('n', '<leader>ntfc', api.tree.toggle_git_clean_filter, opts('Toggle Filter: Git Clean'))
-  vim.keymap.set('n', '<leader>ntfd', api.tree.toggle_hidden_filter, opts('Toggle Filter: Dotfiles'))
-  vim.keymap.set('n', '<leader>ntfi', api.tree.toggle_gitignore_filter, opts('Toggle Filter: Git Ignore'))
-  vim.keymap.set('n', '<leader>ntfm', api.tree.toggle_no_bookmark_filter, opts('Toggle Filter: No Bookmark'))
+    -- Git navigation
+    ["["] = {
+      name = "Previous",
+      g = { api.node.navigate.git.prev, "Git Change" },
+      d = { api.node.navigate.diagnostics.prev, "Diagnostic" },
+    },
+    ["]"] = {
+      name = "Next",
+      g = { api.node.navigate.git.next, "Git Change" },
+      d = { api.node.navigate.diagnostics.next, "Diagnostic" },
+    },
 
-  -- Other Features
-  vim.keymap.set('n', '<leader>nti', api.node.show_info_popup, opts('Info'))
-  vim.keymap.set('n', '<leader>nt?', api.tree.toggle_help, opts('Help'))
-  vim.keymap.set('n', '<leader>nts', api.tree.search_node, opts('Search'))
-  vim.keymap.set('n', '<leader>ntm', api.marks.toggle, opts('Toggle Bookmark'))
-  vim.keymap.set('n', '<leader>nt!', api.node.run.system, opts('Run System'))
+    -- Close
+    ["q"] = { api.tree.close, "Close Tree" },
+  }, { prefix = "<leader>e", buffer = bufnr })
+
+  -- Direct mappings without leader prefix
+  vim.keymap.set("n", "<CR>", api.node.open.edit, opts("Open"))
+  vim.keymap.set("n", "o", api.node.open.edit, opts("Open"))
+  vim.keymap.set("n", "<Tab>", api.node.open.preview, opts("Preview"))
+  vim.keymap.set("n", "<BS>", api.node.navigate.parent_close, opts("Close Directory"))
+  vim.keymap.set("n", "K", api.node.show_info_popup, opts("Show Info"))
+  vim.keymap.set("n", "h", api.node.navigate.parent_close, opts("Close Directory"))
+  vim.keymap.set("n", "l", api.node.open.edit, opts("Open"))
+
+  -- Git navigation
+  vim.keymap.set("n", "]c", api.node.navigate.git.next, opts("Next Git"))
+  vim.keymap.set("n", "[c", api.node.navigate.git.prev, opts("Prev Git"))
+
+  -- Diagnostic navigation (integration with LSP)
+  vim.keymap.set("n", "]d", api.node.navigate.diagnostics.next, opts("Next Diagnostic"))
+  vim.keymap.set("n", "[d", api.node.navigate.diagnostics.prev, opts("Prev Diagnostic"))
 end
 
+-- Global keymaps (outside tree buffer)
+vim.keymap.set("n", "<leader>ee", api.tree.toggle, { desc = "Toggle Explorer" })
+vim.keymap.set("n", "<leader>ef", api.tree.focus, { desc = "Focus Explorer" })
+vim.keymap.set("n", "<leader>ec", function()
+  api.tree.find_file({
+    open = true,
+    focus = true,
+    update_root = true
+  })
+end, { desc = "Find Current File" })
+
+-- Setup NvimTree with optimized configuration
 require("nvim-tree").setup({
-  -- Keep your existing settings
-  actions = {
-    use_system_clipboard = true,
-    open_file = {
-      resize_window = true,
-      quit_on_open = true -- You might want to change this to false if you prefer the tree to stay open
-    }
-  },
-  view = {
-    width = 30,
-    -- Add these for better window handling
-    preserve_window_proportions = true, -- Keeps window size consistent
-    adaptive_size = true,               -- Automatically adjusts width based on content
-  },
-  git = {
+  on_attach = on_attach,
+
+  -- Performance settings
+  auto_reload_on_write = true,
+  filesystem_watchers = {
     enable = true,
-    ignore = false,
-    -- Add these for better git integration
-    timeout = 400,       -- Faster git status updates
-    show_on_dirs = true, -- Shows git status on directories
+    debounce_delay = 100,
+    ignore_dirs = {
+      "node_modules", ".git", "dist", "build",
+      "target", "vendor", ".cache"
+    },
   },
+
+  -- View settings
+  view = {
+    width = 35,
+    side = "left",
+    preserve_window_proportions = true,
+    signcolumn = "yes",
+  },
+
+  -- UI rendering
   renderer = {
-    highlight_git = 'icon',
-    highlight_diagnostics = 'icon',
-    highlight_opened_files = 'name',
-    highlight_modified = 'icon',
-    highlight_bookmarks = 'icon',
-    -- Add these for better visual experience
+    add_trailing = true,
+    group_empty = true,
+    highlight_git = "icon",
+    highlight_opened_files = "name",
+    highlight_modified = "name",
     indent_markers = {
-      enable = true, -- Shows indent markers when folders are open
+      enable = true,
       icons = {
-        corner = "└ ",
-        edge = "│ ",
-        none = "  ",
+        corner = "└",
+        edge = "│",
+        item = "│",
+        none = " ",
       },
     },
     icons = {
+      git_placement = "before",
+      diagnostics_placement = "signcolumn",
+      modified_placement = "after",
+      padding = " ",
       show = {
+        file = true,
         folder = true,
         folder_arrow = true,
-        file = true,
         git = true,
+        modified = true,
+        diagnostics = true,
       },
       glyphs = {
         default = "󰈚",
@@ -139,7 +208,6 @@ require("nvim-tree").setup({
           symlink_open = "",
         },
         git = {
-          -- Clearer git status icons
           unstaged = "✗",
           staged = "✓",
           unmerged = "",
@@ -148,31 +216,20 @@ require("nvim-tree").setup({
           deleted = "",
           ignored = "◌",
         },
-      }
-    },
-    special_files = {
-      -- Files that get special highlighting
-      "README.md",
-      "Makefile",
-      "MAKEFILE",
-      "package.json",
-      "package-lock.json"
+      },
     },
   },
-  filters = {
-    exclude = { "node_modules", "vendor" },
-    -- Add these for better filtering
-    custom = {
-      -- Add any custom file patterns you want to hide
-      "^.git$",
-      "^.DS_Store$"
-    },
-    dotfiles = false
-  },
+
+  -- LSP Zero integration for diagnostics
   diagnostics = {
-    -- Add diagnostics support
     enable = true,
-    show_on_dirs = true, -- Shows diagnostic icons on folders
+    show_on_dirs = true,
+    show_on_open_dirs = true,
+    debounce_delay = 50,
+    severity = {
+      min = vim.diagnostic.severity.HINT,
+      max = vim.diagnostic.severity.ERROR,
+    },
     icons = {
       hint = "",
       info = "",
@@ -180,17 +237,52 @@ require("nvim-tree").setup({
       error = "",
     },
   },
+
+  -- Git integration
+  git = {
+    enable = true,
+    show_on_dirs = true,
+    timeout = 400,
+  },
+
+  -- Modified files tracking
   modified = {
-    -- Track modified files
     enable = true,
     show_on_dirs = true,
   },
-  on_attach = my_on_attach
+
+  -- Actions
+  actions = {
+    use_system_clipboard = true,
+    open_file = {
+      quit_on_open = false,
+      eject = true,
+      resize_window = true,
+      window_picker = {
+        enable = true,
+        exclude = {
+          filetype = { "notify", "packer", "qf", "diff", "fugitive" },
+          buftype = { "nofile", "terminal", "help" },
+        },
+      },
+    },
+  },
+
+  -- Filtering
+  filters = {
+    dotfiles = false,
+    git_ignored = true,
+    custom = { "^.DS_Store$", "^.git$" },
+    exclude = { ".gitignore" },
+  },
 })
 
-vim.cmd([[ highlight NvimTreeNormal guibg=NONE ctermbg=NONE ]])
+-- Transparent background to match theme
+vim.cmd([[highlight NvimTreeNormal guibg=NONE ctermbg=NONE]])
+vim.cmd([[highlight NvimTreeEndOfBuffer guibg=NONE ctermbg=NONE]])
+vim.cmd([[highlight NvimTreeWinSeparator guibg=NONE ctermbg=NONE guifg=#444444]])
 
--- Additional highlights for better visuals
+-- Custom highlight enhancements
 vim.cmd([[
   highlight NvimTreeGitNew guifg=#98c379
   highlight NvimTreeGitDirty guifg=#e5c07b

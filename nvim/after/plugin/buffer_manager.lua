@@ -1,4 +1,4 @@
--- buffer_manager.lua
+--[[ -- buffer_manager.lua
 -- A plugin to limit visible buffers in lualine and total buffers in memory
 -- Save this in: ~/.config/nvim/lua/buffer_manager.lua
 
@@ -107,4 +107,4 @@ function M.setup(opts)
   })
 end
 
-return M
+return M ]]
