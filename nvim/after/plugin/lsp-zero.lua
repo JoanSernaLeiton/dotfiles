@@ -4,7 +4,9 @@ local mason_lspconfig = require('mason-lspconfig')
 local cmp = require('cmp')
 local cmp_action = lsp_zero.cmp_action()
 local mason = require('mason')
-local wk = require("which-key")
+
+-- Get WhichKey - either from global or by requiring it
+local wk = _G.which_key or require("which-key")
 
 -----------------------------------
 -- LSP Attach Configuration
@@ -35,8 +37,8 @@ local function get_lsp_attach_config()
       ["]"] = { d = { vim.diagnostic.goto_next, "Next Diagnostic" } },
 
       -- Leader mappings
-      ["<leader>"] = {
-        -- Code actions
+      ["<leader>l"] = {
+        -- Code actions - add to the existing structure registered in whichkey.lua
         c = {
           name = "Code",
           a = { vim.lsp.buf.code_action, "Code Actions" },
@@ -44,38 +46,54 @@ local function get_lsp_attach_config()
           f = { function() vim.lsp.buf.format({ async = true }) end, "Format" },
         },
 
-        -- Diagnostics
+        -- Diagnostics - add to the existing structure registered in whichkey.lua
         d = {
           name = "Diagnostics",
           d = { vim.diagnostic.open_float, "Show Details" },
           l = { vim.diagnostic.setloclist, "List All" },
+          x = {
+            function()
+              local opts = {
+                focusable = true,
+                close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
+                border = 'rounded',
+                source = 'always',
+                prefix = ' ',
+                scope = 'cursor',
+              }
+              vim.diagnostic.open_float(opts)
+            end,
+            "Show Focused Floating Diagnostic"
+          },
         },
+      },
 
-        -- Workspace
-        w = {
-          name = "Workspace",
-          a = { vim.lsp.buf.add_workspace_folder, "Add Folder" },
-          r = { vim.lsp.buf.remove_workspace_folder, "Remove Folder" },
-          l = { function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, "List Folders" },
-        },
+      -- Workspace
+      ["<leader>w"] = {
+        name = "Workspace",
+        a = { vim.lsp.buf.add_workspace_folder, "Add Folder" },
+        r = { vim.lsp.buf.remove_workspace_folder, "Remove Folder" },
+        l = { function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, "List Folders" },
+      },
 
-        -- TypeScript specific
-        t = {
-          name = "TypeScript",
-          i = { "<cmd>TypescriptAddMissingImports<CR>", "Add Missing Imports" },
-          o = { "<cmd>TypescriptOrganizeImports<CR>", "Organize Imports" },
-          u = { "<cmd>TypescriptRemoveUnused<CR>", "Remove Unused" },
-          f = { "<cmd>TypescriptFixAll<CR>", "Fix All" },
-        },
+      -- TypeScript specific
+      ["<leader>t"] = {
+        name = "TypeScript",
+        i = { "<cmd>TypescriptAddMissingImports<CR>", "Add Missing Imports" },
+        o = { "<cmd>TypescriptOrganizeImports<CR>", "Organize Imports" },
+        u = { "<cmd>TypescriptRemoveUnused<CR>", "Remove Unused" },
+        f = { "<cmd>TypescriptFixAll<CR>", "Fix All" },
       },
     }, { buffer = bufnr })
 
     -- Visual mode mappings
     wk.register({
-      ["<leader>c"] = {
-        name = "Code",
-        a = { vim.lsp.buf.code_action, "Code Actions" },
-        f = { function() vim.lsp.buf.format({ async = true }) end, "Format Selection" },
+      ["<leader>l"] = {
+        c = {
+          name = "Code",
+          a = { vim.lsp.buf.code_action, "Code Actions" },
+          f = { function() vim.lsp.buf.format({ async = true }) end, "Format Selection" },
+        }
       },
     }, { mode = "v", buffer = bufnr })
 
@@ -115,53 +133,6 @@ local function get_lsp_attach_config()
 end
 
 -----------------------------------
--- WhichKey Setup
------------------------------------
-wk.setup({
-  plugins = {
-    marks = true,
-    registers = true,
-    presets = {
-      operators = true,
-      motions = true,
-      text_objects = true,
-      windows = true,
-      nav = true,
-      z = true,
-      g = true,
-    },
-  },
-  icons = {
-    breadcrumb = "»",
-    separator = "➜",
-    group = "+",
-  },
-  window = {
-    border = "rounded",
-    position = "bottom",
-  },
-  layout = {
-    height = { min = 4, max = 25 },
-    width = { min = 20, max = 50 },
-    spacing = 3,
-    align = "left",
-  },
-})
-
--- Global LSP command mappings (not buffer-specific)
-wk.register({
-  ["<leader>l"] = {
-    name = "LSP",
-    i = { "<cmd>LspInfo<CR>", "LSP Info" },
-    r = { "<cmd>LspRestart<CR>", "Restart LSP" },
-    s = { "<cmd>LspStart<CR>", "Start LSP" },
-    S = { "<cmd>LspStop<CR>", "Stop LSP" },
-    f = { "<cmd>LspZeroFormat<CR>", "Format Buffer" },
-    v = { "<cmd>LspZeroViewConfigSource<CR>", "View Config Source" },
-  }
-})
-
------------------------------------
 -- Completion Configuration
 -----------------------------------
 cmp.setup({
@@ -193,7 +164,6 @@ cmp.setup({
 -----------------------------------
 -- Diagnostics Configuration
 -----------------------------------
----
 vim.diagnostic.config({
   signs = true,
   virtual_text = {
@@ -246,7 +216,7 @@ mason.setup({
 -----------------------------------
 -- Determine which servers to install
 local base_servers = {
-  'tsserver', -- TypeScript
+  'ts_ls', -- TypeScript
   'html',     -- HTML
   'cssls',    -- CSS
   'emmet_ls', -- Emmet
@@ -287,8 +257,8 @@ mason_lspconfig.setup({
     lsp_zero.default_setup,
 
     -- TypeScript Server Configuration
-    ['tsserver'] = function()
-      require('lspconfig').tsserver.setup({
+    ['ts_ls'] = function()
+      require('lspconfig').ts_ls.setup({
         on_attach = get_lsp_attach_config(),
         settings = {
           typescript = {

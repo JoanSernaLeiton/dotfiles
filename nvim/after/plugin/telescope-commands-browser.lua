@@ -1,4 +1,4 @@
--- telescope-commands-browser.lua
+--[[ -- telescope-commands-browser.lua
 local pickers = require('telescope.pickers')
 local finders = require('telescope.finders')
 local conf = require('telescope.config').values
@@ -88,4 +88,4 @@ end
 -- Set up the keybinding
 vim.keymap.set("n", "<leader>fx", function()
   browse_commands()
-end, { desc = "Browse all Telescope commands" })
+end, { desc = "Browse all Telescope commands" }) ]]

@@ -38,7 +38,6 @@ local function setup()
   }, { prefix = "<leader>" })
 
   -- Quick access keybinding
-  vim.keymap.set('n', '<leader>lg', '<cmd>LazyGit<CR>', { desc = "Open LazyGit" })
 end
 
 -- Set up autocommands for LazyGit integration

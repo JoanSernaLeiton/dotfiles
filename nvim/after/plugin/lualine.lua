@@ -240,9 +240,6 @@ end
 -- Enhanced buffer navigation with WhichKey integration
 local wk = require("which-key")
 wk.register({
-  ["<C-h>"] = { ":bprevious<CR>", "Previous buffer" },
-  ["<C-l>"] = { ":bnext<CR>", "Next buffer" },
-  ["<C-w>"] = { ":bdelete<CR>", "Close buffer" },
   ["<leader>b"] = {
     name = "Buffers",
     b = { ":Telescope buffers<CR>", "List buffers" },
@@ -254,10 +251,6 @@ wk.register({
   }
 }, { silent = true, noremap = true })
 
--- Basic key mappings for common buffer operations
-vim.api.nvim_set_keymap('n', '<C-h>', ':bprevious<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<C-l>', ':bnext<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<C-w>', ':bdelete<CR>', { noremap = true, silent = true })
 
 -- Initialize buffer cache on startup
 init_buffer_cache()
