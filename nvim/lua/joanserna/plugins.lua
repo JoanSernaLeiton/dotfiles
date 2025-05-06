@@ -10,6 +10,7 @@ return {
     'nvim-lualine/lualine.nvim',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
   },
+
   { 'mhinz/vim-startify' },
 
   -- Core functionality
@@ -108,8 +109,14 @@ return {
     "j-hui/fidget.nvim",
     event = "LspAttach",
   },
-  { 'MunifTanjim/prettier.nvim' },
-
+  {
+    "stevearc/conform.nvim",
+    -- Optional: Make conform load only when needed
+    -- event = { "BufWritePre", "BufNewFile" }, -- Load formatters before saving or on new files
+    cmd = "ConformInfo",                   -- Allow calling :ConformInfo command anytime
+    -- Conform's configuration will be added in Step 4 below
+    opts = {}, -- Placeholder for now, config function will replace this
+  },
   -- Telescope and searching
   {
     "nvim-telescope/telescope.nvim",

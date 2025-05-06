@@ -115,14 +115,14 @@ local function get_lsp_attach_config()
     end
 
     -- Format on save if supported
-    if client:supports_method("textDocument/formatting") then
-      vim.api.nvim_create_autocmd("BufWritePre", {
-        buffer = bufnr,
-        callback = function()
-          vim.lsp.buf.format({ bufnr = bufnr })
-        end,
-      })
-    end
+    -- if client:supports_method("textDocument/formatting") then
+    --   vim.api.nvim_create_autocmd("BufWritePre", {
+    --     buffer = bufnr,
+    --     callback = function()
+    --       vim.lsp.buf.format({ bufnr = bufnr })
+    --     end,
+    --   })
+    -- end
 
     -- Highlight symbol references
     lsp_zero.highlight_symbol(client, bufnr)
@@ -216,13 +216,14 @@ mason.setup({
 -----------------------------------
 -- Determine which servers to install
 local base_servers = {
-  'ts_ls', -- TypeScript
+  'ts_ls',    -- TypeScript
   'html',     -- HTML
   'cssls',    -- CSS
   'emmet_ls', -- Emmet
   'pyright',  -- Python
   'gopls',    -- Go
   'jsonls',   -- JSON
+  'prettierd'
 }
 
 local conditional_servers = {}
@@ -258,28 +259,23 @@ mason_lspconfig.setup({
 
     -- TypeScript Server Configuration
     ['ts_ls'] = function()
+      local common_inlay_hints = {
+        includeInlayParameterNameHints = "all", -- 'none', 'literals', 'all'
+        includeInlayFunctionParameterTypeHints = true,
+        includeInlayVariableTypeHints = true, -- Recommended: true
+        includeInlayPropertyDeclarationTypeHints = true,
+        includeInlayFunctionLikeReturnTypeHints = true,
+        includeInlayEnumMemberValueHints = true,
+      }
       require('lspconfig').ts_ls.setup({
         on_attach = get_lsp_attach_config(),
         settings = {
+          tsserver_max_ts_server_memory = 4096, -- e.g., 4GB
           typescript = {
-            inlayHints = {
-              includeInlayParameterNameHints = "all",
-              includeInlayFunctionParameterTypeHints = true,
-              includeInlayVariableTypeHints = true,
-              includeInlayPropertyDeclarationTypeHints = true,
-              includeInlayFunctionLikeReturnTypeHints = true,
-              includeInlayEnumMemberValueHints = true,
-            }
+            inlayHints = common_inlay_hints
           },
           javascript = {
-            inlayHints = {
-              includeInlayParameterNameHints = "all",
-              includeInlayFunctionParameterTypeHints = true,
-              includeInlayVariableTypeHints = true,
-              includeInlayPropertyDeclarationTypeHints = true,
-              includeInlayFunctionLikeReturnTypeHints = true,
-              includeInlayEnumMemberValueHints = true,
-            }
+            inlayHints = common_inlay_hints
           }
         }
       })

@@ -179,15 +179,6 @@ wk.register({
     o = { builtin.lsp_outgoing_calls, "Outgoing Calls" },
   },
 
-  -- Git commands
-  ["<leader>g"] = {
-    name = "Git",
-    c = { builtin.git_commits, "Commits" },
-    b = { builtin.git_branches, "Branches" },
-    s = { builtin.git_status, "Status" },
-    t = { builtin.git_stash, "Stash" },
-  },
-
   -- Help
   ["<leader>h"] = {
     name = "Help",

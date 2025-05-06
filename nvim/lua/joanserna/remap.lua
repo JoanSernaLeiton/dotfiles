@@ -7,7 +7,10 @@ vim.keymap.set("n", "n", "nzzzv")
 vim.keymap.set("n", "N", "Nzzzv")
 
 vim.keymap.set("n", "<leader>b", "<cmd> silent !tmux new-session<CR>")
-vim.keymap.set("n", "<leader>f", vim.lsp.buf.format)
+
+vim.keymap.set({ "n", "v" }, "<leader>f", function() -- Choose your keys, e.g., <leader>gf
+  require("conform").format({ async = true, lsp_fallback = true })
+end, { desc = "Format buffer or range [Conform]" })
 
 vim.keymap.set("i", "jj", "<ESC>", opts)
 vim.keymap.set("n", "<leader>V", ":vsplit<CR>", opts)

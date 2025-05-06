@@ -1,7 +1,7 @@
 -- Place this in: /Users/joanserna/dotfiles/nvim/after/plugin/lualine.lua
 
 -- Configuration
-local MAX_BUFFERS_DISPLAY = 4 -- Maximum buffers to show in tab bar
+local MAX_BUFFERS_DISPLAY = 6 -- Maximum buffers to show in tab bar
 local MAX_BUFFERS_MEMORY = 15 -- Reduced from 20 for better performance
 local BUFFER_CACHE = {} -- Cache buffer data to reduce API calls
 
