@@ -10,7 +10,7 @@ local function setup()
   -- Configure lazygit options
   vim.g.lazygit_floating_window_winblend = 0 -- Better visibility
   vim.g.lazygit_floating_window_scaling_factor = 0.9 -- Almost full screen
-  vim.g.lazygit_floating_window_corner_chars = { '╭', '╮', '╰', '╯' } -- Nicer corners
+
   vim.g.lazygit_use_neovim_remote = 0 -- Better performance without nvr
 
   -- Configure floating window border style for consistency with other plugins
@@ -28,11 +28,7 @@ local function setup()
         l = { "<cmd>LazyGit<CR>", "Open LazyGit" },
         c = { "<cmd>LazyGitConfig<CR>", "LazyGit Config" },
         f = { "<cmd>LazyGitFilter<CR>", "LazyGit Filter" },
-        b = { function()
-          -- Get current file path relative to git root
-          local file = vim.fn.expand('%:p')
-          vim.cmd('LazyGitFilter ' .. file)
-        end, "LazyGit Current File" },
+        b = { "<cmd>LazyGitFilterCurrentFile<CR>", "LazyGit Current File" },
       },
     },
   }, { prefix = "<leader>" })
@@ -71,13 +67,7 @@ return {
     vim.cmd("LazyGit")
   end,
 
-  open_file_history = function(file)
-    if file then
-      vim.cmd("LazyGitFilter " .. file)
-    else
-      -- Current file
-      local current_file = vim.fn.expand('%:p')
-      vim.cmd("LazyGitFilter " .. current_file)
-    end
+  open_file_history = function()
+    vim.cmd("LazyGitFilterCurrentFile")
   end
 }

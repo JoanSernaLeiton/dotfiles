@@ -165,7 +165,14 @@ cmp.setup({
 -- Diagnostics Configuration
 -----------------------------------
 vim.diagnostic.config({
-  signs = true,
+  signs = {
+    text = {
+      [vim.diagnostic.severity.ERROR] = '✘',
+      [vim.diagnostic.severity.WARN] = '▲',
+      [vim.diagnostic.severity.HINT] = '⚑',
+      [vim.diagnostic.severity.INFO] = '»',
+    },
+  },
   virtual_text = {
     prefix = '●',
     source = "if_many",
@@ -186,12 +193,6 @@ vim.diagnostic.config({
 -- LSP Core Configuration
 -----------------------------------
 lsp_zero.extend_lspconfig({
-  sign_text = {
-    error = '✘',
-    warn = '▲',
-    hint = '⚑',
-    info = '»',
-  },
   float_border = 'rounded',
   lsp_attach = get_lsp_attach_config(),
   capabilities = require('cmp_nvim_lsp').default_capabilities()
@@ -222,8 +223,7 @@ local base_servers = {
   'emmet_ls', -- Emmet
   'pyright',  -- Python
   'gopls',    -- Go
-  'jsonls',   -- JSON
-  'prettierd'
+  'jsonls'   -- JSON
 }
 
 local conditional_servers = {}

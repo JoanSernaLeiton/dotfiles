@@ -231,10 +231,10 @@ require("nvim-tree").setup({
       max = vim.diagnostic.severity.ERROR,
     },
     icons = {
-      hint = "",
-      info = "",
-      warning = "",
-      error = "",
+      hint = "",
+      info = "",
+      warning = "",
+      error = "",
     },
   },
 
