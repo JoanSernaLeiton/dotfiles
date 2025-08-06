@@ -5,6 +5,9 @@ require("lazy")
 require("lazy").setup({
   require("joanserna.plugins")
 }, {
+ rocks = {
+    enabled = false,
+  },
   defaults = {
     lazy = true, -- All plugins are lazy-loaded by default
   },

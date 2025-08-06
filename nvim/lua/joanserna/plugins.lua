@@ -11,30 +11,37 @@ return {
     dependencies = { 'nvim-tree/nvim-web-devicons' },
   },
 
-  { 'mhinz/vim-startify' },
-
   -- Core functionality
   {
     "folke/which-key.nvim",
     event = "VeryLazy",
   },
-  { "echasnovski/mini.nvim", version = false },
-  { "wfxr/minimap.vim" },
-  { "matze/vim-move",        event = "VeryLazy" },
   {
-    "kylechui/nvim-surround",
-    event = "VeryLazy",
+    "echasnovski/mini.nvim",
+    version = false,
     config = function()
-      require("nvim-surround").setup()
-    end
+      -- Enable the modules you want to use
+      require('mini.comment').setup()
+      require('mini.pairs').setup()
+      require('mini.surround').setup()
+      -- Add any other mini modules you want here
+    end,
   },
-  {
-    "windwp/nvim-autopairs",
-    event = "InsertEnter",
-    config = true,
-  },
+  { "wfxr/minimap.vim" },
+  { "matze/vim-move",              event = "VeryLazy" },
+  -- {
+  --   "kylechui/nvim-surround",
+  --   event = "VeryLazy",
+  --   config = function()
+  --     require("nvim-surround").setup()
+  --   end
+  -- },
+  -- {
+  --   "windwp/nvim-autopairs",
+  --   event = "InsertEnter",
+  --   config = true,
+  -- },
   { "petertriho/nvim-scrollbar" },
-  { "nvim-lua/plenary.nvim" },
   { "mbbill/undotree" },
   {
     "startup-nvim/startup.nvim",
@@ -64,20 +71,20 @@ return {
 
   {
     "kdheepak/lazygit.nvim",
-        lazy = true,
-        cmd = {
-            "LazyGit",
-            "LazyGitConfig",
-            "LazyGitCurrentFile",
-            "LazyGitFilter",
-            "LazyGitFilterCurrentFile",
-        },
-        -- optional for floating window border decoration
-        dependencies = {
-            "nvim-lua/plenary.nvim",
-        },
-        -- setting the keybinding for LazyGit with 'keys' is recommended in
-        -- order to load the plugin when the command is run for the first time
+    lazy = true,
+    cmd = {
+      "LazyGit",
+      "LazyGitConfig",
+      "LazyGitCurrentFile",
+      "LazyGitFilter",
+      "LazyGitFilterCurrentFile",
+    },
+    -- optional for floating window border decoration
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+    },
+    -- setting the keybinding for LazyGit with 'keys' is recommended in
+    -- order to load the plugin when the command is run for the first time
   },
 
 
@@ -113,9 +120,9 @@ return {
     "stevearc/conform.nvim",
     -- Optional: Make conform load only when needed
     -- event = { "BufWritePre", "BufNewFile" }, -- Load formatters before saving or on new files
-    cmd = "ConformInfo",                   -- Allow calling :ConformInfo command anytime
+    cmd = "ConformInfo", -- Allow calling :ConformInfo command anytime
     -- Conform's configuration will be added in Step 4 below
-    opts = {}, -- Placeholder for now, config function will replace this
+    opts = {},           -- Placeholder for now, config function will replace this
   },
   -- Telescope and searching
   {
@@ -139,7 +146,7 @@ return {
   {
     "nvim-tree/nvim-tree.lua",
     version = "*",
-    lazy = false,
+    lazy = true,
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
       require("nvim-tree").setup({})
@@ -157,10 +164,10 @@ return {
     'kkoomen/vim-doge',
     build = ':call doge#install()'
   },
-  {
-    'numToStr/Comment.nvim',
-    config = true,
-  },
+  -- {
+  --   'numToStr/Comment.nvim',
+  --   config = true,
+  -- },
 
   -- PlantUML support
   { 'aklt/plantuml-syntax' },

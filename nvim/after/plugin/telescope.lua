@@ -1,3 +1,5 @@
+-- telescope.lua
+
 local telescope = require('telescope')
 local builtin = require('telescope.builtin')
 local actions = require('telescope.actions')
@@ -138,79 +140,57 @@ telescope.setup({
 })
 
 -- Smart project files function
-builtin.project_files = function()
-  local opts = {}
+local function project_files()
   vim.fn.system("git rev-parse --is-inside-work-tree")
   if vim.v.shell_error == 0 then
-    builtin.git_files(opts)
+    builtin.git_files({})
   else
-    builtin.find_files(opts)
+    builtin.find_files({})
   end
 end
 
--- Register keybindings with WhichKey
-wk.register({
-  -- Direct keybindings
-  ["<C-p>"] = { builtin.project_files, "Project Files" },
-  ["<C-f>"] = { builtin.live_grep, "Live Grep" },
-  ["<C-b>"] = { builtin.buffers, "Buffers" },
 
-  -- File Search (<leader>f prefix)
-  ["<leader>f"] = {
-    name = "Find",
-    f = { builtin.find_files, "Find Files" },
-    g = { builtin.git_files, "Git Files" },
-    r = { builtin.oldfiles, "Recent Files" },
-    w = { function() builtin.grep_string({ word_match = "-w" }) end, "Find Word Under Cursor" },
-    s = { builtin.grep_string, "Grep String" },
-    l = { builtin.live_grep, "Live Grep" },
-    b = { builtin.current_buffer_fuzzy_find, "Buffer Fuzzy Find" },
-  },
+-- Register keybindings with WhichKey using the new flat-list format
+wk.add({
+  { "<C-p>", project_files, desc = "Project Files" },
+  { "<C-f>", builtin.live_grep, desc = "Live Grep" },
+  { "<C-b>", builtin.buffers, desc = "Buffers" },
 
-  -- LSP search via Telescope (<leader>s prefix)
-  ["<leader>s"] = {
-    name = "Symbols",
-    d = { builtin.lsp_document_symbols, "Document Symbols" },
-    w = { builtin.lsp_dynamic_workspace_symbols, "Workspace Symbols" },
-    r = { builtin.lsp_references, "References" },
-    i = { builtin.lsp_implementations, "Implementations" },
-    t = { builtin.lsp_type_definitions, "Type Definitions" },
-    c = { builtin.lsp_incoming_calls, "Incoming Calls" },
-    o = { builtin.lsp_outgoing_calls, "Outgoing Calls" },
-  },
+  { "<leader>f", group = "Find" },
+  { "<leader>ff", builtin.find_files, desc = "Find Files" },
+  { "<leader>fg", builtin.git_files, desc = "Git Files" },
+  { "<leader>fr", builtin.oldfiles, desc = "Recent Files" },
+  { "<leader>fw", function() builtin.grep_string({ word_match = "-w" }) end, desc = "Find Word Under Cursor" },
+  { "<leader>fs", builtin.grep_string, desc = "Grep String" },
+  { "<leader>fl", builtin.live_grep, desc = "Live Grep" },
+  { "<leader>fb", builtin.current_buffer_fuzzy_find, desc = "Buffer Fuzzy Find" },
 
-  -- Help
-  ["<leader>h"] = {
-    name = "Help",
-    k = { builtin.keymaps, "Keymaps" },
-    h = { builtin.help_tags, "Help Tags" },
-    m = { builtin.man_pages, "Man Pages" },
-    c = { builtin.commands, "Commands" },
-  },
+  { "<leader>h", group = "Help" },
+  { "<leader>hk", builtin.keymaps, desc = "Keymaps" },
+  { "<leader>hh", builtin.help_tags, desc = "Help Tags" },
+  { "<leader>hm", builtin.man_pages, desc = "Man Pages" },
+  { "<leader>hc", builtin.commands, desc = "Commands" },
 
-  -- Renamed to "Telescope Diagnostics" to avoid confusion with LSP diagnostics
-  ["<leader>t"] = {
-    name = "Telescope",
-    d = { builtin.diagnostics, "All Diagnostics" },
-    p = { "<cmd>Telescope resume<CR>", "Resume Last Picker" },
-  },
+  { "<leader>t", group = "Telescope" },
+  { "<leader>td", builtin.diagnostics, desc = "All Diagnostics" },
+  { "<leader>tp", "<cmd>Telescope resume<CR>", desc = "Resume Last Picker" },
 })
 
 -- Override LSP keybindings to use Telescope
 vim.api.nvim_create_autocmd("LspAttach", {
+  group = vim.api.nvim_create_augroup("UserLspTelescope", {}),
   callback = function(args)
     local bufnr = args.buf
-    local opts = { noremap = true, silent = true, buffer = bufnr }
+    local opts = { silent = true, buffer = bufnr }
 
     -- Use telescope for LSP navigation
-    vim.keymap.set("n", "gd", function() builtin.lsp_definitions() end, opts)
+    vim.keymap.set("n", "gd", builtin.lsp_definitions, opts)
     vim.keymap.set("n", "gr", function() builtin.lsp_references({ include_declaration = false }) end, opts)
-    vim.keymap.set("n", "gi", function() builtin.lsp_implementations() end, opts)
-    vim.keymap.set("n", "gt", function() builtin.lsp_type_definitions() end, opts)
+    vim.keymap.set("n", "gi", builtin.lsp_implementations, opts)
+    vim.keymap.set("n", "gt", builtin.lsp_type_definitions, opts)
 
     -- Add buffer-specific diagnostics - now through Telescope namespace
-    vim.keymap.set("n", "<leader>td", function() builtin.diagnostics({ bufnr = 0 }) end,
-      { noremap = true, silent = true, desc = "Buffer Diagnostics" })
+    vim.keymap.set("n", "<leader>tD", function() builtin.diagnostics({ bufnr = 0 }) end, { silent = true, desc = "Buffer Diagnostics" })
 
     -- Keep native LSP for these (better experience)
     vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)

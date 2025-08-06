@@ -11,107 +11,70 @@ local function on_attach(bufnr)
     return { desc = "nvim-tree: " .. desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
   end
 
-  -- WhichKey integration for NvimTree with prefix 'e' for explorer
-  wk.register({
-    -- File operations
-    ["f"] = {
-      name = "File Operations",
-      c = { api.fs.create, "Create" },
-      r = { api.fs.rename, "Rename" },
-      m = { api.fs.rename_full, "Move (Rename Path)" },
-      d = { api.fs.remove, "Delete" },
-      t = { api.fs.trash, "Trash" },
-      x = { api.fs.cut, "Cut" },
-      p = { api.fs.paste, "Paste" },
-      y = { api.fs.copy.node, "Copy" },
-    },
+  -- WhichKey integration for NvimTree using the new flat-list format
+  -- These mappings are buffer-local and will only activate in the nvim-tree window
+  wk.add({
+    -- File operations group, triggered by <leader>ef
+    { "<leader>ef", group = "File" },
+    { "<leader>efc", api.fs.create, desc = "Create" },
+    { "<leader>efr", api.fs.rename, desc = "Rename" },
+    { "<leader>efm", api.fs.rename_full, desc = "Move (Rename Path)" },
+    { "<leader>efd", api.fs.remove, desc = "Delete" },
+    { "<leader>eft", api.fs.trash, desc = "Trash" },
+    { "<leader>efx", api.fs.cut, desc = "Cut" },
+    { "<leader>efp", api.fs.paste, desc = "Paste" },
+    { "<leader>efy", api.fs.copy.node, desc = "Copy" },
 
-    -- Copy paths (unified with Telescope patterns)
-    ["y"] = {
-      name = "Copy Path",
-      a = { api.fs.copy.absolute_path, "Absolute Path" },
-      r = { api.fs.copy.relative_path, "Relative Path" },
-      n = { api.fs.copy.filename, "Filename" },
-      b = { api.fs.copy.basename, "Basename" },
-    },
+    { "<leader>ey", group = "Copy Path" },
+    { "<leader>eya", api.fs.copy.absolute_path, desc = "Absolute Path" },
+    { "<leader>eyr", api.fs.copy.relative_path, desc = "Relative Path" },
+    { "<leader>eyn", api.fs.copy.filename, desc = "Filename" },
+    { "<leader>eyb", api.fs.copy.basename, desc = "Basename" },
 
-    -- Open - similar style to LSP navigation
-    ["o"] = {
-      name = "Open",
-      e = { api.node.open.edit, "Edit" },
-      v = { api.node.open.vertical, "Vertical Split" },
-      h = { api.node.open.horizontal, "Horizontal Split" },
-      t = { api.node.open.tab, "Tab" },
-      p = { api.node.open.preview, "Preview" },
-    },
+    { "<leader>eo", group = "Open" },
+    { "<leader>eoe", api.node.open.edit, desc = "Edit" },
+    { "<leader>eov", api.node.open.vertical, desc = "Vertical Split" },
+    { "<leader>eoh", api.node.open.horizontal, desc = "Horizontal Split" },
+    { "<leader>eot", api.node.open.tab, desc = "Tab" },
+    { "<leader>eop", api.node.open.preview, desc = "Preview" },
 
-    -- Navigate (similar to LSP)
-    ["g"] = {
-      name = "Go To",
-      p = { api.node.navigate.parent, "Parent" },
-      n = { api.node.navigate.sibling.next, "Next Sibling" },
-      N = { api.node.navigate.sibling.prev, "Previous Sibling" },
-      f = { api.node.navigate.sibling.first, "First Sibling" },
-      l = { api.node.navigate.sibling.last, "Last Sibling" },
-    },
+    { "<leader>eg", group = "Go To" },
+    { "<leader>egp", api.node.navigate.parent, desc = "Parent" },
+    { "<leader>egn", api.node.navigate.sibling.next, desc = "Next Sibling" },
+    { "<leader>egN", api.node.navigate.sibling.prev, desc = "Previous Sibling" },
+    { "<leader>egf", api.node.navigate.sibling.first, desc = "First Sibling" },
+    { "<leader>egl", api.node.navigate.sibling.last, desc = "Last Sibling" },
 
-    -- Root management
-    ["r"] = {
-      name = "Root",
-      c = { api.tree.change_root_to_node, "Change Root Here" },
-      p = { api.tree.change_root_to_parent, "Go To Parent" },
-    },
+    { "<leader>er", group = "Root" },
+    { "<leader>erc", api.tree.change_root_to_node, desc = "Change Root Here" },
+    { "<leader>erp", api.tree.change_root_to_parent, desc = "Go To Parent" },
 
-    -- Telescope integration
-    ["s"] = {
-      name = "Search with Telescope",
-      f = { function()
-        api.tree.close()
-        require("telescope.builtin").find_files()
-      end, "Find Files" },
-      g = { function()
-        api.tree.close()
-        require("telescope.builtin").live_grep()
-      end, "Grep" },
-      b = { function()
-        api.tree.close()
-        require("telescope.builtin").buffers()
-      end, "Buffers" },
-    },
+    { "<leader>es", group = "Search with Telescope" },
+    { "<leader>esf", function() api.tree.close(); require("telescope.builtin").find_files() end, desc = "Find Files" },
+    { "<leader>esg", function() api.tree.close(); require("telescope.builtin").live_grep() end, desc = "Grep" },
+    { "<leader>esb", function() api.tree.close(); require("telescope.builtin").buffers() end, desc = "Buffers" },
 
-    -- Tree operations
-    ["t"] = {
-      name = "Tree",
-      r = { api.tree.reload, "Refresh" },
-      e = { api.tree.expand_all, "Expand All" },
-      c = { api.tree.collapse_all, "Collapse All" },
-      h = { api.tree.toggle_help, "Help" },
-    },
+    { "<leader>et", group = "Tree" },
+    { "<leader>etr", api.tree.reload, desc = "Refresh" },
+    { "<leader>ete", api.tree.expand_all, desc = "Expand All" },
+    { "<leader>etc", api.tree.collapse_all, desc = "Collapse All" },
+    { "<leader>eth", api.tree.toggle_help, desc = "Help" },
 
-    -- Filters
-    ["F"] = {
-      name = "Filter",
-      h = { api.tree.toggle_hidden_filter, "Toggle Hidden Files" },
-      g = { api.tree.toggle_gitignore_filter, "Toggle Git Ignored" },
-      c = { api.tree.toggle_git_clean_filter, "Toggle Git Clean" },
-      b = { api.tree.toggle_no_buffer_filter, "Toggle No Buffer" },
-    },
+    { "<leader>eF", group = "Filter" },
+    { "<leader>eFh", api.tree.toggle_hidden_filter, desc = "Toggle Hidden Files" },
+    { "<leader>eFg", api.tree.toggle_gitignore_filter, desc = "Toggle Git Ignored" },
+    { "<leader>eFc", api.tree.toggle_git_clean_filter, desc = "Toggle Git Clean" },
+    { "<leader>eFb", api.tree.toggle_no_buffer_filter, desc = "Toggle No Buffer" },
 
-    -- Git navigation
-    ["["] = {
-      name = "Previous",
-      g = { api.node.navigate.git.prev, "Git Change" },
-      d = { api.node.navigate.diagnostics.prev, "Diagnostic" },
-    },
-    ["]"] = {
-      name = "Next",
-      g = { api.node.navigate.git.next, "Git Change" },
-      d = { api.node.navigate.diagnostics.next, "Diagnostic" },
-    },
+    { "<leader>e[", group = "Previous" },
+    { "<leader>e[g", api.node.navigate.git.prev, desc = "Git Change" },
+    { "<leader>e[d", api.node.navigate.diagnostics.prev, desc = "Diagnostic" },
+    { "<leader>e]", group = "Next" },
+    { "<leader>e]g", api.node.navigate.git.next, desc = "Git Change" },
+    { "<leader>e]d", api.node.navigate.diagnostics.next, desc = "Diagnostic" },
 
-    -- Close
-    ["q"] = { api.tree.close, "Close Tree" },
-  }, { prefix = "<leader>e", buffer = bufnr })
+    { "<leader>eq", api.tree.close, desc = "Close Tree" },
+  }, { buffer = bufnr })
 
   -- Direct mappings without leader prefix
   vim.keymap.set("n", "<CR>", api.node.open.edit, opts("Open"))
@@ -121,26 +84,16 @@ local function on_attach(bufnr)
   vim.keymap.set("n", "K", api.node.show_info_popup, opts("Show Info"))
   vim.keymap.set("n", "h", api.node.navigate.parent_close, opts("Close Directory"))
   vim.keymap.set("n", "l", api.node.open.edit, opts("Open"))
-
-  -- Git navigation
-  vim.keymap.set("n", "]c", api.node.navigate.git.next, opts("Next Git"))
-  vim.keymap.set("n", "[c", api.node.navigate.git.prev, opts("Prev Git"))
-
-  -- Diagnostic navigation (integration with LSP)
-  vim.keymap.set("n", "]d", api.node.navigate.diagnostics.next, opts("Next Diagnostic"))
-  vim.keymap.set("n", "[d", api.node.navigate.diagnostics.prev, opts("Prev Diagnostic"))
 end
 
 -- Global keymaps (outside tree buffer)
-vim.keymap.set("n", "<leader>ee", api.tree.toggle, { desc = "Toggle Explorer" })
-vim.keymap.set("n", "<leader>ef", api.tree.focus, { desc = "Focus Explorer" })
-vim.keymap.set("n", "<leader>ec", function()
-  api.tree.find_file({
-    open = true,
-    focus = true,
-    update_root = true
-  })
-end, { desc = "Find Current File" })
+wk.add({
+    { "<leader>ee", api.tree.toggle, desc = "Toggle Explorer" },
+    { "<leader>ef", api.tree.focus, desc = "Focus Explorer" },
+    { "<leader>ec", function()
+        api.tree.find_file({ open = true, focus = true, update_root = true })
+      end, desc = "Find Current File" },
+})
 
 -- Setup NvimTree with optimized configuration
 require("nvim-tree").setup({
@@ -271,7 +224,7 @@ require("nvim-tree").setup({
   -- Filtering
   filters = {
     dotfiles = false,
-    git_ignored = true,
+    git_ignored = false,
     custom = { "^.DS_Store$", "^.git$" },
     exclude = { ".gitignore" },
   },

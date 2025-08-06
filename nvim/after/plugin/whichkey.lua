@@ -1,7 +1,8 @@
--- WhichKey configuration with Telescope integration for LSP functionality
+-- whichkey.lua
+
 local wk = require("which-key")
 
--- Basic WhichKey setup
+-- Basic WhichKey setup with the corrected 'win' option
 wk.setup({
   plugins = {
     marks = true,
@@ -16,83 +17,64 @@ wk.setup({
       g = true,
     },
   },
-  window = {
+  -- The 'position' key has been removed as it's no longer valid
+  win = {
     border = "rounded",
-    position = "bottom",
+  },
+  triggers = {
+    { "<leader>", mode = { "n", "v" } },
   },
 })
 
--- Register LSP structure with Telescope integration
-wk.register({
-  ["<leader>l"] = {
-    name = "LSP",
-    -- Top-level commands
-    f = { "<cmd>LspZeroFormat<CR>", "Format Buffer" },
-    r = { "<cmd>LspRestart<CR>", "Restart LSP" },
-    S = { "<cmd>LspStop<CR>", "Stop LSP" },
-    s = { "<cmd>LspStart<CR>", "Start LSP" },
-    i = { "<cmd>LspInfo<CR>", "LSP Info" },
-    v = { "<cmd>LspZeroViewConfigSource<CR>", "View Config Source" },
+-- Register all keymaps in a single call for clarity
+wk.add({
+  -- LSP Group
+  { "<leader>l", group = "LSP" },
+  { "<leader>lf", "<cmd>LspZeroFormat<CR>", desc = "Format Buffer" },
+  { "<leader>lr", "<cmd>LspRestart<CR>", desc = "Restart LSP" },
+  { "<leader>lS", "<cmd>LspStop<CR>", desc = "Stop LSP" },
+  { "<leader>li", "<cmd>LspInfo<CR>", desc = "LSP Info" },
+  { "<leader>lv", "<cmd>LspZeroViewConfigSource<CR>", desc = "View Config Source" },
 
-    -- Code actions submenu
-    c = {
-      name = "Code",
-      a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code Actions" },
-      r = { "<cmd>lua vim.lsp.buf.rename()<CR>", "Rename Symbol" },
-      f = { "<cmd>lua vim.lsp.buf.format({async = true})<CR>", "Format" },
-    },
+  -- Code Actions
+  { "<leader>lc", group = "Code" },
+  { "<leader>lca", "<cmd>lua vim.lsp.buf.code_action()<CR>", desc = "Code Actions" },
+  { "<leader>lcr", "<cmd>lua vim.lsp.buf.rename()<CR>", desc = "Rename Symbol" },
+  { "<leader>lcf", "<cmd>lua vim.lsp.buf.format({async = true})<CR>", desc = "Format" },
 
-    -- Diagnostics submenu with Telescope integration
-    d = {
-      name = "Diagnostics",
-      -- Use Telescope for global diagnostics
-      d = { "<cmd>Telescope diagnostics<CR>", "All Diagnostics (Telescope)" },
-      -- Use native LSP for current buffer diagnostics
-      c = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Current Diagnostics" },
-      l = { "<cmd>lua vim.diagnostic.setloclist()<CR>", "List All" },
-      -- Buffer-specific diagnostics via Telescope
-      b = { "<cmd>Telescope diagnostics bufnr=0<CR>", "Buffer Diagnostics (Telescope)" },
-    },
+  -- Diagnostics
+  { "<leader>ld", group = "Diagnostics" },
+  { "<leader>ldd", "<cmd>Telescope diagnostics<CR>", desc = "All Diagnostics (Telescope)" },
+  { "<leader>ldc", "<cmd>lua vim.diagnostic.open_float()<CR>", desc = "Current Diagnostics" },
+  { "<leader>ldl", "<cmd>lua vim.diagnostic.setloclist()<CR>", desc = "List All" },
+  { "<leader>ldb", "<cmd>Telescope diagnostics bufnr=0<CR>", desc = "Buffer Diagnostics (Telescope)" },
 
-    -- Symbols/References submenu with Telescope
-    s = {
-      name = "Symbols",
-      d = { "<cmd>Telescope lsp_document_symbols<CR>", "Document Symbols" },
-      w = { "<cmd>Telescope lsp_dynamic_workspace_symbols<CR>", "Workspace Symbols" },
-      r = { "<cmd>Telescope lsp_references<CR>", "References" },
-      i = { "<cmd>Telescope lsp_implementations<CR>", "Implementations" },
-      t = { "<cmd>Telescope lsp_type_definitions<CR>", "Type Definitions" },
-    },
+  -- Symbols/References
+  { "<leader>ls", group = "Symbols" },
+  { "<leader>lsd", "<cmd>Telescope lsp_document_symbols<CR>", desc = "Document Symbols" },
+  { "<leader>lsw", "<cmd>Telescope lsp_dynamic_workspace_symbols<CR>", desc = "Workspace Symbols" },
+  { "<leader>lsr", "<cmd>Telescope lsp_references<CR>", desc = "References" },
+  { "<leader>lsi", "<cmd>Telescope lsp_implementations<CR>", desc = "Implementations" },
+  { "<leader>lst", "<cmd>Telescope lsp_type_definitions<CR>", desc = "Type Definitions" },
 
-    -- Jump to definition/declaration with Telescope
-    j = {
-      name = "Jump",
-      d = { "<cmd>Telescope lsp_definitions<CR>", "Jump to Definition" },
-      D = { "<cmd>lua vim.lsp.buf.declaration()<CR>", "Jump to Declaration" },
-    },
-  }
-})
+  -- Jump
+  { "<leader>lj", group = "Jump" },
+  { "<leader>ljd", "<cmd>Telescope lsp_definitions<CR>", desc = "Jump to Definition" },
+  { "<leader>ljD", "<cmd>lua vim.lsp.buf.declaration()<CR>", desc = "Jump to Declaration" },
 
--- Navigation mappings using 'g' prefix with Telescope integration
-wk.register({
-  g = {
-    d = { "<cmd>Telescope lsp_definitions<CR>", "Go to Definition" },
-    r = { "<cmd>Telescope lsp_references<CR>", "Find References" },
-    i = { "<cmd>Telescope lsp_implementations<CR>", "Go to Implementation" },
-    t = { "<cmd>Telescope lsp_type_definitions<CR>", "Go to Type Definition" },
-    s = { "<cmd>lua vim.lsp.buf.signature_help()<CR>", "Show Signature Help" },
-  }
-})
+  -- Navigation mappings using 'g' prefix
+  { "gd", "<cmd>Telescope lsp_definitions<CR>", desc = "Go to Definition" },
+  { "gr", "<cmd>Telescope lsp_references<CR>", desc = "Find References" },
+  { "gi", "<cmd>Telescope lsp_implementations<CR>", desc = "Go to Implementation" },
+  { "gt", "<cmd>Telescope lsp_type_definitions<CR>", desc = "Go to Type Definition" },
+  { "gs", "<cmd>lua vim.lsp.buf.signature_help()<CR>", desc = "Show Signature Help" },
 
--- Diagnostics navigation
-wk.register({
-  ["[d"] = { "<cmd>lua vim.diagnostic.goto_prev()<CR>", "Previous Diagnostic" },
-  ["]d"] = { "<cmd>lua vim.diagnostic.goto_next()<CR>", "Next Diagnostic" },
-})
+  -- Diagnostics navigation
+  { "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>", desc = "Previous Diagnostic" },
+  { "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>", desc = "Next Diagnostic" },
 
--- Documentation hover
-wk.register({
-  K = { "<cmd>lua vim.lsp.buf.hover()<CR>", "Show Documentation" },
+  -- Documentation hover
+  { "K", "<cmd>lua vim.lsp.buf.hover()<CR>", desc = "Show Documentation" },
 })
 
 -- Make WhichKey available globally
