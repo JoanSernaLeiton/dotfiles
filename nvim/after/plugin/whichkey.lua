@@ -28,6 +28,11 @@ wk.setup({
 
 -- Register all keymaps in a single call for clarity
 wk.add({
+  -- Avante AI Group
+  { "<leader>a", group = "AI (Avante)" },
+  { "<leader>aa", "<cmd>AvanteAsk<CR>", desc = "Ask Avante" },
+  { "<leader>at", "<cmd>AvanteToggle<CR>", desc = "Toggle Avante Sidebar" },
+  { "<leader>ap", "<cmd>AvanteSwitchProvider<CR>", desc = "Switch Provider" },
   -- LSP Group
   { "<leader>l", group = "LSP" },
   { "<leader>lf", "<cmd>LspZeroFormat<CR>", desc = "Format Buffer" },

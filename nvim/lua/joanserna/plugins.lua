@@ -18,29 +18,17 @@ return {
   },
   {
     "echasnovski/mini.nvim",
+    event = "VeryLazy",
     version = false,
     config = function()
       -- Enable the modules you want to use
       require('mini.comment').setup()
       require('mini.pairs').setup()
       require('mini.surround').setup()
-      -- Add any other mini modules you want here
     end,
   },
   { "wfxr/minimap.vim" },
-  { "matze/vim-move",              event = "VeryLazy" },
-  -- {
-  --   "kylechui/nvim-surround",
-  --   event = "VeryLazy",
-  --   config = function()
-  --     require("nvim-surround").setup()
-  --   end
-  -- },
-  -- {
-  --   "windwp/nvim-autopairs",
-  --   event = "InsertEnter",
-  --   config = true,
-  -- },
+  { "matze/vim-move", event = "VeryLazy" },
   { "petertriho/nvim-scrollbar" },
   { "mbbill/undotree" },
   {
@@ -164,11 +152,6 @@ return {
     'kkoomen/vim-doge',
     build = ':call doge#install()'
   },
-  -- {
-  --   'numToStr/Comment.nvim',
-  --   config = true,
-  -- },
-
   -- PlantUML support
   { 'aklt/plantuml-syntax' },
   { 'weirongxu/plantuml-previewer.vim' },
@@ -204,4 +187,54 @@ return {
       if vim.fn.executable "npx" then vim.g.mkdp_filetypes = { "markdown" } end
     end,
   },
+  -- AVANTE
+  --
+  --
+  --
+  --
+  {
+    "folke/snacks.nvim",
+    event = "VeryLazy",
+  },
+
+  {
+    "HakonHarnes/img-clip.nvim",
+    event = "VeryLazy",
+    config = function()
+      require("img-clip").setup({
+        -- Recommended settings for avante
+        default = {
+          embed_image_as_base64 = false,
+          prompt_for_file_name = false,
+          use_absolute_path = true,
+          drag_and_drop = {
+            insert_mode = true,
+          },
+        },
+      })
+    end,
+  },
+
+  {
+    "yetone/avante.nvim",
+    build = vim.fn.has("win32") ~= 0
+        and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
+        or "make",
+    event = "VeryLazy",
+    version = false, -- Never set this value to "*"! Never!
+    ---@module 'avante'
+    ---@type avante.Config
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "MunifTanjim/nui.nvim",
+      "nvim-tree/nvim-web-devicons",
+      "echasnovski/mini.pick",         -- for file_selector provider mini.pick
+      "nvim-telescope/telescope.nvim", -- for file_selector provider telescope
+      "hrsh7th/nvim-cmp",              -- autocompletion for avante commands and mentions
+      "ibhagwan/fzf-lua",              -- for file_selector provider fzf
+      "folke/snacks.nvim",             -- For the improved UI
+      "HakonHarnes/img-clip.nvim",     -- For image support
+    },
+    config = {}
+  }
 }
