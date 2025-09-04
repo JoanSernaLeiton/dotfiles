@@ -158,6 +158,7 @@ wk.add({
 
   { "<leader>f", group = "Find" },
   { "<leader>ff", builtin.find_files, desc = "Find Files" },
+  { "<leader>fa", function() builtin.find_files({ no_ignore = true }) end, desc = "Find All Files (inc. Gitignore)" },
   { "<leader>fg", builtin.git_files, desc = "Git Files" },
   { "<leader>fr", builtin.oldfiles, desc = "Recent Files" },
   { "<leader>fw", function() builtin.grep_string({ word_match = "-w" }) end, desc = "Find Word Under Cursor" },

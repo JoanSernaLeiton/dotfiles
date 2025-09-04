@@ -5,7 +5,6 @@ return {
     lazy = false,
     priority = 1000,
   },
-  { 'nvim-tree/nvim-web-devicons', lazy = true },
   {
     'nvim-lualine/lualine.nvim',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
@@ -137,9 +136,15 @@ return {
     lazy = true,
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
-      require("nvim-tree").setup({})
+      return require("joanserna.configs.nvim-tree").setup()
     end,
   },
+
+  { 'nvim-tree/nvim-web-devicons', lazy = true,
+    config = function()
+      return require("joanserna.configs.nvim-web-devicons")
+    end
+},
 
   -- Treesitter
   {
