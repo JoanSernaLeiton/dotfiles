@@ -27,7 +27,7 @@ return {
     end,
   },
   { "wfxr/minimap.vim" },
-  { "matze/vim-move", event = "VeryLazy" },
+  { "matze/vim-move",           event = "VeryLazy" },
   { "petertriho/nvim-scrollbar" },
   { "mbbill/undotree" },
   {
@@ -72,6 +72,21 @@ return {
     },
     -- setting the keybinding for LazyGit with 'keys' is recommended in
     -- order to load the plugin when the command is run for the first time
+  },
+  {
+    "harrisoncramer/gitlab.nvim",
+    dependencies = {
+      "MunifTanjim/nui.nvim",
+      "nvim-lua/plenary.nvim",
+      "sindrets/diffview.nvim",
+      "stevearc/dressing.nvim",                                 -- Recommended but not required. Better UI for pickers.
+      "nvim-tree/nvim-web-devicons",                            -- Recommended but not required. Icons in discussion tree.
+    },
+    build = function() require("gitlab.server").build(true) end, -- Builds the Go binary
+    lazy = false,
+    config = function()
+      require("gitlab").setup()
+    end,
   },
 
 
@@ -133,18 +148,20 @@ return {
   {
     "nvim-tree/nvim-tree.lua",
     version = "*",
-    lazy = true,
+    lazy = false,
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
       return require("joanserna.configs.nvim-tree").setup()
     end,
   },
 
-  { 'nvim-tree/nvim-web-devicons', lazy = true,
+  {
+    'nvim-tree/nvim-web-devicons',
+    lazy = true,
     config = function()
       return require("joanserna.configs.nvim-web-devicons")
     end
-},
+  },
 
   -- Treesitter
   {
