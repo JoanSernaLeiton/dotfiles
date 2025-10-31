@@ -1,15 +1,12 @@
--- Load lazy bootstrap
-require("lazy")
-
 -- Initialize lazy with your configuration
 require("lazy").setup({
   require("joanserna.plugins")
 }, {
- rocks = {
+  rocks = {
     enabled = false,
   },
   defaults = {
-    lazy = true, -- All plugins are lazy-loaded by default
+    lazy = false, -- Plugins load on startup unless specified otherwise
   },
   install = {
     colorscheme = { "onedark" },

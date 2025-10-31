@@ -255,11 +255,20 @@ wk.register({
 -- Initialize buffer cache on startup
 init_buffer_cache()
 
+-- Custom toggleterm component for statusline
+local function toggleterm_status()
+  if vim.bo.filetype == "toggleterm" then
+    local toggle_number = vim.b.toggle_number or ""
+    return string.format("terminal (%s)", toggle_number)
+  end
+  return ""
+end
+
 -- Lualine configuration
 require('lualine').setup {
   options = {
     theme = 'onedark',
-    disabled_filetypes = { 'NvimTree', 'toggleterm', 'help', 'qf' },
+    disabled_filetypes = { 'NvimTree', 'help', 'qf' },
     refresh = {
       statusline = 250, -- Refresh every 250ms for better performance
       tabline = 250,
@@ -279,13 +288,22 @@ require('lualine').setup {
     },
     lualine_c = {
       {
+        toggleterm_status,
+        cond = function()
+          return vim.bo.filetype == "toggleterm"
+        end
+      },
+      {
         'filename',
         path = 1, -- Relative path for clarity without taking too much space
         symbols = {
           modified = '●',
           readonly = '',
           unnamed = '[No Name]',
-        }
+        },
+        cond = function()
+          return vim.bo.filetype ~= "toggleterm"
+        end
       }
     },
     lualine_x = {
