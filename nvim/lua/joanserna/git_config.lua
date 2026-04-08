@@ -11,82 +11,66 @@ vim.api.nvim_command('highlight GitSignsDelete guifg=#e06c75 guibg=NONE')
 
 -- In gitconfig.lua
 M.setup_keymaps = function()
-  -- Main git commands
-  wk.register({
-    g = {
-      name = "Git",
-      -- Status commands
-      s = { "<cmd>Git<CR>", "Status (Fugitive)" },
-      S = { builtin.git_status, "Telescope Status" }, -- Was <leader>gs in telescope.lua
+  -- Main git commands using new flat-list format
+  wk.add({
+    -- Git group
+    { "<leader>g", group = "Git" },
+    
+    -- Status commands
+    { "<leader>gs", "<cmd>Git<CR>", desc = "Status (Fugitive)" },
+    { "<leader>gS", builtin.git_status, desc = "Telescope Status" },
 
-      -- Navigation
-      j = { function() require('gitsigns').nav_hunk('next') end, "Next Hunk" },
-      k = { function() require('gitsigns').nav_hunk('prev') end, "Previous Hunk" },
+    -- Navigation
+    { "<leader>gj", function() require('gitsigns').nav_hunk('next') end, desc = "Next Hunk" },
+    { "<leader>gk", function() require('gitsigns').nav_hunk('prev') end, desc = "Previous Hunk" },
 
-      -- Viewing changes
-      v = { function() require('gitsigns').preview_hunk() end, "Preview Hunk" },
+    -- Viewing changes
+    { "<leader>gv", function() require('gitsigns').preview_hunk() end, desc = "Preview Hunk" },
 
-      -- History commands
-      h = { name = "History" },
+    -- Branch operations
+    { "<leader>gb", builtin.git_branches, desc = "Branches" },
 
-      -- Branch operations
-      b = { builtin.git_branches, "Branches" }, -- Was <leader>gb in telescope.lua
+    -- Staging and committing
+    { "<leader>ga", function() require('gitsigns').stage_buffer() end, desc = "Stage All" },
+    { "<leader>gr", function() require('gitsigns').reset_hunk() end, desc = "Reset Hunk" },
+    { "<leader>gR", function() require('gitsigns').reset_buffer() end, desc = "Reset Buffer" },
+    { "<leader>gu", function() require('gitsigns').undo_stage_hunk() end, desc = "Undo Stage Hunk" },
+    { "<leader>gm", "<cmd>Git commit<CR>", desc = "Make Commit" },
 
-      -- Staging and committing
-      a = { function() require('gitsigns').stage_buffer() end, "Stage All" },
-      r = { function() require('gitsigns').reset_hunk() end, "Reset Hunk" },
-      R = { function() require('gitsigns').reset_buffer() end, "Reset Buffer" },
-      u = { function() require('gitsigns').undo_stage_hunk() end, "Undo Stage Hunk" },
-      m = { "<cmd>Git commit<CR>", "Make Commit" },
+    -- Sync operations
+    { "<leader>gP", "<cmd>Git push<CR>", desc = "Push" },
+    { "<leader>gf", "<cmd>Git pull<CR>", desc = "Pull" },
 
-      -- Sync operations
-      P = { "<cmd>Git push<CR>", "Push" },
-      f = { "<cmd>Git pull<CR>", "Pull" },
+    -- LazyGit
+    { "<leader>gl", "<cmd>LazyGit<CR>", desc = "LazyGit" },
 
-      -- Blame operations
-      B = { name = "Blame" },
+    -- Stash
+    { "<leader>gt", builtin.git_stash, desc = "Stash" },
 
-      -- Tools and views
-      l = { "<cmd>LazyGit<CR>", "LazyGit" },
-      V = { name = "View/Diff" },
-      x = { name = "Conflicts" },
-      t = { builtin.git_stash, "Stash" },     -- Was <leader>gt in telescope.lua
-      c = { builtin.git_commits, "Commits" }, -- Was <leader>gc in telescope.lua
-    }
-  }, { prefix = "<leader>" })
+    -- Commits
+    { "<leader>gc", builtin.git_commits, desc = "Commits" },
 
-  -- View/Diff submenu
-  wk.register({
-    V = {
-      name = "View/Diff",
-      v = { "<cmd>DiffviewOpen<CR>", "Open Diffview" },
-      c = { "<cmd>DiffviewClose<CR>", "Close Diffview" },
-      f = { "<cmd>DiffviewFileHistory %<CR>", "File History (current)" },
-      p = { "<cmd>DiffviewFileHistory<CR>", "Project History" },
-      r = { "<cmd>DiffviewRefresh<CR>", "Refresh Diff" },
-      h = { "<cmd>Gitsigns diffthis<CR>", "Diff This (Gitsigns)" },
-      H = { function() require('gitsigns').diffthis("~") end, "Diff with HEAD" },
-    }
-  }, { prefix = "<leader>g" })
+    -- History group
+    { "<leader>gh", group = "History" },
+    { "<leader>ghc", builtin.git_commits, desc = "Commit History" },
+    { "<leader>ghf", "<cmd>DiffviewFileHistory %<CR>", desc = "File History" },
+    { "<leader>ghp", "<cmd>DiffviewFileHistory<CR>", desc = "Project History" },
 
-  -- History submenu (new)
-  wk.register({
-    h = {
-      name = "History",
-      c = { builtin.git_commits, "Commit History" },
-      f = { "<cmd>DiffviewFileHistory %<CR>", "File History" },
-      p = { "<cmd>DiffviewFileHistory<CR>", "Project History" },
-    }
-  }, { prefix = "<leader>g" })
+    -- Blame group
+    { "<leader>gB", group = "Blame" },
+    { "<leader>gBb", function() require('gitsigns').blame_line({ full = true }) end, desc = "Blame Line" },
+    { "<leader>gBt", function() require('gitsigns').toggle_current_line_blame() end, desc = "Toggle Blame" },
 
-  -- Blame submenu (restructured)
-  wk.register({
-    B = {
-      name = "Blame",
-      b = { function() require('gitsigns').blame_line({ full = true }) end, "Blame Line" },
-      t = { function() require('gitsigns').toggle_current_line_blame() end, "Toggle Blame" },
-    }
-  }, { prefix = "<leader>g" })
+    -- View/Diff group
+    { "<leader>gV", group = "View/Diff" },
+    { "<leader>gVv", "<cmd>DiffviewOpen<CR>", desc = "Open Diffview" },
+    { "<leader>gVc", "<cmd>DiffviewClose<CR>", desc = "Close Diffview" },
+    { "<leader>gVf", "<cmd>DiffviewFileHistory %<CR>", desc = "File History (current)" },
+    { "<leader>gVp", "<cmd>DiffviewFileHistory<CR>", desc = "Project History" },
+    { "<leader>gVr", "<cmd>DiffviewRefresh<CR>", desc = "Refresh Diff" },
+    { "<leader>gVh", "<cmd>Gitsigns diffthis<CR>", desc = "Diff This (Gitsigns)" },
+    { "<leader>gVH", function() require('gitsigns').diffthis("~") end, desc = "Diff with HEAD" },
+  })
 
   -- Keep bracket navigation for hunks (these are common in plugins and won't conflict)
   vim.keymap.set('n', ']h', function()

@@ -1,46 +1,43 @@
--- vim.keymat.set mode, shortcut, action, config
+-- vim.keymap.set mode, shortcut, action, config
 local opts = { noremap = true, silent = true }
+
+-- Visual mode - move lines
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 
+-- Search - center cursor
 vim.keymap.set("n", "n", "nzzzv")
 vim.keymap.set("n", "N", "Nzzzv")
 
-vim.keymap.set("n", "<leader>b", "<cmd> silent !tmux new-session<CR>")
-
-vim.keymap.set({ "n", "v" }, "<leader>f", function() -- Choose your keys, e.g., <leader>gf
-  require("conform").format({ async = true, lsp_fallback = true })
-end, { desc = "Format buffer or range [Conform]" })
-
+-- Escape
 vim.keymap.set("i", "jj", "<ESC>", opts)
-vim.keymap.set("n", "<leader>V", ":vsplit<CR>", opts)
--- vim.keymap.set("n","ff",":Prettier<CR>",opts)
-vim.keymap.set("n", "<C-s>", ":wa<CR>", opts)
-
-vim.keymap.set("n", "<C-k>", "<cmd>cnext<CR>zz")
-vim.keymap.set("n", "<leader>>>", ":vertical resize +10<CR>")
-vim.keymap.set("n", "<leader><<", ":vertical resize -10<CR>")
-
--- Clear search highlight
 vim.keymap.set("n", "<esc>", ":noh<return><esc>", opts)
 
--- Fold
+-- Quick save
+vim.keymap.set("n", "<C-s>", ":wa<CR>", opts)
+
+-- Quick quit buffer
+vim.keymap.set("n", "<leader>qt", ":bd<CR>", opts)
+
+-- Folding
 vim.keymap.set("n", "zC", "zM", opts)
 vim.keymap.set("n", "zO", "zR", opts)
-vim.keymap.set("n", "zz", "<C-w>|", opts)
 
--- Indentations
+-- Indentation
 vim.keymap.set("v", ">", ">gv", { silent = true })
 vim.keymap.set("v", "<", "<gv", { silent = true })
 
+-- Quick replace word under cursor
 vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
+
+-- Make file executable
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
 
--- navigate between buffers
-vim.keymap.set('n', '<C-h>', ':bprev<CR>', opts)
-vim.keymap.set('n', '<C-l>', ':bnext<CR>', opts)
-vim.keymap.set('n', '<leader>qt', ':bd<CR>', opts)
+-- Quickfix navigation
+vim.keymap.set("n", "<C-k>", "<cmd>cnext<CR>zz")
+vim.keymap.set("n", "<C-j>", "<cmd>cprevious<CR>zz")
 
+-- Close quickfix window
 vim.api.nvim_create_autocmd("FileType", {
   callback = function()
     local bufnr = vim.fn.bufnr('%')
@@ -52,6 +49,10 @@ vim.api.nvim_create_autocmd("FileType", {
   pattern = "qf",
 })
 
+-- TypeScript organize imports
 vim.keymap.set("n", "<leader>op", function()
   vim.lsp.buf.execute_command({ command = "_typescript.organizeImports", arguments = { vim.fn.expand("%:p") } })
 end, opts)
+
+-- Split
+vim.keymap.set("n", "<leader>V", ":vsplit<CR>", opts)

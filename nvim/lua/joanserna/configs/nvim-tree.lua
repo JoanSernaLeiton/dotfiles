@@ -106,19 +106,6 @@ function M.setup()
     vim.keymap.set("n", "l", api.node.open.edit, opts("Open"))
   end
 
-  -- Global keymaps (outside tree buffer)
-  wk.add({
-    { "<leader>ee", api.tree.toggle, desc = "Toggle Explorer" },
-    { "<leader>ef", api.tree.focus,  desc = "Focus Explorer" },
-    {
-      "<leader>ec",
-      function()
-        api.tree.find_file({ open = true, focus = true, update_root = true })
-      end,
-      desc = "Find Current File"
-    },
-  })
-
   -- Setup NvimTree with optimized configuration
   require("nvim-tree").setup({
     on_attach = on_attach,
@@ -250,6 +237,18 @@ function M.setup()
       git_ignored = false,
       custom = { "^.DS_Store$", "^.git$" },
       exclude = { ".gitignore" },
+    },
+  })
+
+  -- Global keymaps (outside tree buffer)
+  wk.add({
+    { "<leader>e", api.tree.toggle, desc = "Toggle Explorer" },
+    {
+      "<leader>ec",
+      function()
+        api.tree.find_file({ open = true, focus = true, update_root = true })
+      end,
+      desc = "Find Current File"
     },
   })
 

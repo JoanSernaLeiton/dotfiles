@@ -106,7 +106,7 @@ return {
   },
   {
     "j-hui/fidget.nvim",
-    event = "LspAttach",
+    event = "VeryLazy",
   },
   {
     "stevearc/conform.nvim",
@@ -203,7 +203,16 @@ return {
   --
   {
     "folke/snacks.nvim",
-    event = "VeryLazy",
+    lazy = false,
+    priority = 1000,
+  },
+
+  {
+    "nickjvandyke/opencode.nvim",
+    version = "*",
+    dependencies = {
+      "folke/snacks.nvim",
+    },
   },
 
   {
@@ -211,7 +220,6 @@ return {
     event = "VeryLazy",
     config = function()
       require("img-clip").setup({
-        -- Recommended settings for avante
         default = {
           embed_image_as_base64 = false,
           prompt_for_file_name = false,
@@ -223,27 +231,4 @@ return {
       })
     end,
   },
-
-  {
-    "yetone/avante.nvim",
-    build = vim.fn.has("win32") ~= 0
-        and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
-        or "make",
-    event = "VeryLazy",
-    version = false, -- Never set this value to "*"! Never!
-    ---@module 'avante'
-    ---@type avante.Config
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "MunifTanjim/nui.nvim",
-      "nvim-tree/nvim-web-devicons",
-      "echasnovski/mini.pick",         -- for file_selector provider mini.pick
-      "nvim-telescope/telescope.nvim", -- for file_selector provider telescope
-      "hrsh7th/nvim-cmp",              -- autocompletion for avante commands and mentions
-      "ibhagwan/fzf-lua",              -- for file_selector provider fzf
-      "folke/snacks.nvim",             -- For the improved UI
-      "HakonHarnes/img-clip.nvim",     -- For image support
-    },
-    config = {}
-  }
 }

@@ -313,5 +313,22 @@ mason_lspconfig.setup({
 vim.filetype.add({
   extension = {
     astro = "astro",
-  }
+    pug = "pug",
+    templ = "templ",
+    go = "go",
+    gowork = "gowork",
+    gotmpl = "gotmpl",
+  },
+  filename = {
+    ["docker-compose.yaml"] = "yaml.docker-compose",
+    ["docker-compose.yml"] = "yaml.docker-compose",
+    ["compose.yaml"] = "yaml.docker-compose",
+    ["compose.yml"] = "yaml.docker-compose",
+    [".gitlab-ci.yml"] = "yaml.gitlab",
+    ["values.yaml"] = "yaml.helm-values",
+  },
+  pattern = {
+    [".gitlab/.*%.yml$"] = "yaml.gitlab",
+    ["helm/.*/values%.yml$"] = "yaml.helm-values",
+  },
 })

@@ -237,19 +237,7 @@ local function beautiful_tabs()
   }
 end
 
--- Enhanced buffer navigation with WhichKey integration
-local wk = require("which-key")
-wk.register({
-  ["<leader>b"] = {
-    name = "Buffers",
-    b = { ":Telescope buffers<CR>", "List buffers" },
-    d = { ":bdelete<CR>", "Delete buffer" },
-    n = { ":bnext<CR>", "Next buffer" },
-    p = { ":bprevious<CR>", "Previous buffer" },
-    c = { ":enew<CR>", "New buffer" },
-    l = { enforce_memory_limit, "Clean old buffers" }
-  }
-}, { silent = true, noremap = true })
+
 
 
 -- Initialize buffer cache on startup

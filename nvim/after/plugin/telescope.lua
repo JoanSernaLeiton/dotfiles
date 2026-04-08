@@ -150,51 +150,21 @@ local function project_files()
 end
 
 
--- Register keybindings with WhichKey using the new flat-list format
+-- Only keep native keybindings (no leader prefix)
 wk.add({
   { "<C-p>", project_files, desc = "Project Files" },
   { "<C-f>", builtin.live_grep, desc = "Live Grep" },
   { "<C-b>", builtin.buffers, desc = "Buffers" },
-
-  { "<leader>f", group = "Find" },
-  { "<leader>ff", builtin.find_files, desc = "Find Files" },
-  { "<leader>fa", function() builtin.find_files({ no_ignore = true }) end, desc = "Find All Files (inc. Gitignore)" },
-  { "<leader>fg", builtin.git_files, desc = "Git Files" },
-  { "<leader>fr", builtin.oldfiles, desc = "Recent Files" },
-  { "<leader>fw", function() builtin.grep_string({ word_match = "-w" }) end, desc = "Find Word Under Cursor" },
-  { "<leader>fs", builtin.grep_string, desc = "Grep String" },
-  { "<leader>fl", builtin.live_grep, desc = "Live Grep" },
-  { "<leader>fb", builtin.current_buffer_fuzzy_find, desc = "Buffer Fuzzy Find" },
-
-  { "<leader>h", group = "Help" },
-  { "<leader>hk", builtin.keymaps, desc = "Keymaps" },
-  { "<leader>hh", builtin.help_tags, desc = "Help Tags" },
-  { "<leader>hm", builtin.man_pages, desc = "Man Pages" },
-  { "<leader>hc", builtin.commands, desc = "Commands" },
-
-  { "<leader>t", group = "Telescope" },
-  { "<leader>td", builtin.diagnostics, desc = "All Diagnostics" },
-  { "<leader>tp", "<cmd>Telescope resume<CR>", desc = "Resume Last Picker" },
 })
 
--- Override LSP keybindings to use Telescope
+-- LSP keybindings (buffer-specific)
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("UserLspTelescope", {}),
   callback = function(args)
     local bufnr = args.buf
     local opts = { silent = true, buffer = bufnr }
 
-    -- Use telescope for LSP navigation
-    vim.keymap.set("n", "gd", builtin.lsp_definitions, opts)
-    vim.keymap.set("n", "gr", function() builtin.lsp_references({ include_declaration = false }) end, opts)
-    vim.keymap.set("n", "gi", builtin.lsp_implementations, opts)
-    vim.keymap.set("n", "gt", builtin.lsp_type_definitions, opts)
-
-    -- Add buffer-specific diagnostics - now through Telescope namespace
-    vim.keymap.set("n", "<leader>tD", function() builtin.diagnostics({ bufnr = 0 }) end, { silent = true, desc = "Buffer Diagnostics" })
-
-    -- Keep native LSP for these (better experience)
-    vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
-    vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
+    -- Buffer-specific diagnostics
+    vim.keymap.set("n", "<leader>dd", function() builtin.diagnostics({ bufnr = 0 }) end, { silent = true, desc = "Buffer Diagnostics" })
   end,
 })

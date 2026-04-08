@@ -19,19 +19,14 @@ local function setup()
   }
 
   -- Register additional keymaps specifically for LazyGit integration
-  wk.register({
-    g = {
-      name = "Git",
-      -- LazyGit commands
-      L = {
-        name = "LazyGit",
-        l = { "<cmd>LazyGit<CR>", "Open LazyGit" },
-        c = { "<cmd>LazyGitConfig<CR>", "LazyGit Config" },
-        f = { "<cmd>LazyGitFilter<CR>", "LazyGit Filter" },
-        b = { "<cmd>LazyGitFilterCurrentFile<CR>", "LazyGit Current File" },
-      },
-    },
-  }, { prefix = "<leader>" })
+  wk.add({
+    { "<leader>g", group = "Git" },
+    { "<leader>gL", group = "LazyGit" },
+    { "<leader>gLl", "<cmd>LazyGit<CR>", desc = "Open LazyGit" },
+    { "<leader>gLc", "<cmd>LazyGitConfig<CR>", desc = "LazyGit Config" },
+    { "<leader>gLf", "<cmd>LazyGitFilter<CR>", desc = "LazyGit Filter" },
+    { "<leader>gLb", "<cmd>LazyGitFilterCurrentFile<CR>", desc = "LazyGit Current File" },
+  })
 
   -- Quick access keybinding
 end

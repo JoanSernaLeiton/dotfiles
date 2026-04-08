@@ -2,7 +2,6 @@
 
 local wk = require("which-key")
 
--- Basic WhichKey setup with the corrected 'win' option
 wk.setup({
   plugins = {
     marks = true,
@@ -17,7 +16,6 @@ wk.setup({
       g = true,
     },
   },
-  -- The 'position' key has been removed as it's no longer valid
   win = {
     border = "rounded",
   },
@@ -26,60 +24,54 @@ wk.setup({
   },
 })
 
--- Register all keymaps in a single call for clarity
 wk.add({
-  -- Avante AI Group
-  { "<leader>a", group = "AI (Avante)" },
-  { "<leader>aa", "<cmd>AvanteAsk<CR>", desc = "Ask Avante" },
-  { "<leader>at", "<cmd>AvanteToggle<CR>", desc = "Toggle Avante Sidebar" },
-  { "<leader>ap", "<cmd>AvanteSwitchProvider<CR>", desc = "Switch Provider" },
-  -- LSP Group
-  { "<leader>l", group = "LSP" },
-  { "<leader>lf", "<cmd>LspZeroFormat<CR>", desc = "Format Buffer" },
-  { "<leader>lr", "<cmd>LspRestart<CR>", desc = "Restart LSP" },
-  { "<leader>lS", "<cmd>LspStop<CR>", desc = "Stop LSP" },
-  { "<leader>li", "<cmd>LspInfo<CR>", desc = "LSP Info" },
-  { "<leader>lv", "<cmd>LspZeroViewConfigSource<CR>", desc = "View Config Source" },
+  -- OpenCode AI Group
+  { "<leader>o", group = "OpenCode AI", icon = "🤖" },
+  { "<leader>oa", function() require("opencode").ask("@this: ", { submit = true }) end, desc = "Ask OpenCode" },
+  { "<leader>os", function() require("opencode").select() end, desc = "Select Action" },
+  { "<leader>ot", function() require("opencode").toggle() end, desc = "Toggle OpenCode" },
 
-  -- Code Actions
-  { "<leader>lc", group = "Code" },
-  { "<leader>lca", "<cmd>lua vim.lsp.buf.code_action()<CR>", desc = "Code Actions" },
-  { "<leader>lcr", "<cmd>lua vim.lsp.buf.rename()<CR>", desc = "Rename Symbol" },
-  { "<leader>lcf", "<cmd>lua vim.lsp.buf.format({async = true})<CR>", desc = "Format" },
+  -- Search Group
+  { "<leader>/", group = "Search", icon = "🔍" },
+  { "<leader>ff", function() require("telescope.builtin").find_files() end, desc = "Find Files" },
+  { "<leader>fb", function() require("telescope.builtin").buffers() end, desc = "Find Buffers" },
+  { "<leader>fh", function() require("telescope.builtin").help_tags() end, desc = "Find Help" },
+  { "<leader>fp", function() require("telescope.builtin").commands() end, desc = "Find Commands" },
 
-  -- Diagnostics
-  { "<leader>ld", group = "Diagnostics" },
-  { "<leader>ldd", "<cmd>Telescope diagnostics<CR>", desc = "All Diagnostics (Telescope)" },
-  { "<leader>ldc", "<cmd>lua vim.diagnostic.open_float()<CR>", desc = "Current Diagnostics" },
-  { "<leader>ldl", "<cmd>lua vim.diagnostic.setloclist()<CR>", desc = "List All" },
-  { "<leader>ldb", "<cmd>Telescope diagnostics bufnr=0<CR>", desc = "Buffer Diagnostics (Telescope)" },
+  -- Buffer Group
+  { "<leader>b", group = "Buffer", icon = "📋" },
+  { "<leader>bb", function() require("telescope.builtin").buffers() end, desc = "List Buffers" },
+  { "<leader>bd", "<cmd>bdelete<CR>", desc = "Delete Buffer" },
+  { "<leader>bn", "<cmd>bnext<CR>", desc = "Next Buffer" },
+  { "<leader>bp", "<cmd>bprevious<CR>", desc = "Previous Buffer" },
 
-  -- Symbols/References
-  { "<leader>ls", group = "Symbols" },
-  { "<leader>lsd", "<cmd>Telescope lsp_document_symbols<CR>", desc = "Document Symbols" },
-  { "<leader>lsw", "<cmd>Telescope lsp_dynamic_workspace_symbols<CR>", desc = "Workspace Symbols" },
-  { "<leader>lsr", "<cmd>Telescope lsp_references<CR>", desc = "References" },
-  { "<leader>lsi", "<cmd>Telescope lsp_implementations<CR>", desc = "Implementations" },
-  { "<leader>lst", "<cmd>Telescope lsp_type_definitions<CR>", desc = "Type Definitions" },
+  -- File Explorer (defined in nvim-tree config)
 
-  -- Jump
-  { "<leader>lj", group = "Jump" },
-  { "<leader>ljd", "<cmd>Telescope lsp_definitions<CR>", desc = "Jump to Definition" },
-  { "<leader>ljD", "<cmd>lua vim.lsp.buf.declaration()<CR>", desc = "Jump to Declaration" },
+  -- Code Group
+  { "<leader>c", group = "Code", icon = "💻" },
+  { "<leader>cf", function() vim.lsp.buf.format({ async = true }) end, desc = "Format Code" },
+  { "<leader>ca", function() vim.lsp.buf.code_action() end, desc = "Code Actions" },
+  { "<leader>cr", function() vim.lsp.buf.rename() end, desc = "Rename Symbol" },
+  { "<leader>ch", function() vim.lsp.buf.hover() end, desc = "Hover Docs" },
 
-  -- Navigation mappings using 'g' prefix
-  { "gd", "<cmd>Telescope lsp_definitions<CR>", desc = "Go to Definition" },
-  { "gr", "<cmd>Telescope lsp_references<CR>", desc = "Find References" },
-  { "gi", "<cmd>Telescope lsp_implementations<CR>", desc = "Go to Implementation" },
-  { "gt", "<cmd>Telescope lsp_type_definitions<CR>", desc = "Go to Type Definition" },
-  { "gs", "<cmd>lua vim.lsp.buf.signature_help()<CR>", desc = "Show Signature Help" },
+  -- Git Group (basic shortcuts, detailed mappings in git_config.lua)
+  { "<leader>g", group = "Git", icon = "📦" },
 
-  -- Diagnostics navigation
-  { "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>", desc = "Previous Diagnostic" },
-  { "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>", desc = "Next Diagnostic" },
+  -- Terminal Group
+  { "<leader>t", group = "Terminal", icon = "⌨️" },
+  { "<leader>tt", "<cmd>ToggleTerm<CR>", desc = "New Terminal" },
+  { "<leader>tv", "<cmd>vsplit<CR><cmd>ToggleTerm<CR>", desc = "Vertical Terminal" },
+  { "<leader>ts", "<cmd>split<CR><cmd>ToggleTerm<CR>", desc = "Horizontal Terminal" },
 
-  -- Documentation hover
-  { "K", "<cmd>lua vim.lsp.buf.hover()<CR>", desc = "Show Documentation" },
+  -- Window Group
+  { "<leader>w", group = "Window", icon = "🪟" },
+  { "<leader>w+", "<cmd>resize +5<CR>", desc = "Increase Height" },
+  { "<leader>w-", "<cmd>resize -5<CR>", desc = "Decrease Height" },
+  { "<leader>w>", "<cmd>vertical resize +5<CR>", desc = "Increase Width" },
+  { "<leader>w<", "<cmd>vertical resize -5<CR>", desc = "Decrease Width" },
+
+  -- Tools Group
+  { "<leader>u", "<cmd>UndotreeToggle<CR>", desc = "Undo Tree" },
 })
 
 -- Make WhichKey available globally

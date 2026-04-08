@@ -10,61 +10,39 @@ vim.keymap.set("n", "<leader>gs", vim.cmd.Git, { desc = "Git status (Fugitive)" 
 
 -- Enhanced fugitive commands with better descriptions
 local function setup_fugitive_commands()
-  -- Register additional Fugitive-specific commands
-  wk.register({
-    g = {
-      name = "Git",
-      -- Commit workflow
-      c = {
-        name = "Commit",
-        c = { "<cmd>Git commit<CR>", "Create commit" },
-        a = { "<cmd>Git commit --amend<CR>", "Amend commit" },
-        v = { "<cmd>Git commit --verbose<CR>", "Commit verbose" },
-      },
+  -- Register additional Fugitive-specific commands using new flat-list format
+  wk.add({
+    -- Commit workflow
+    { "<leader>gca", "<cmd>Git commit --amend<CR>", desc = "Amend Commit" },
+    { "<leader>gcv", "<cmd>Git commit --verbose<CR>", desc = "Verbose Commit" },
 
-      -- Log commands
-      l = {
-        name = "Log",
-        l = { "<cmd>Git log<CR>", "View log" },
-        p = { "<cmd>Git log -p<CR>", "View log with patches" },
-        g = { "<cmd>Git log --graph --oneline<CR>", "View graph log" },
-      },
+    -- Log commands
+    { "<leader>gl", "<cmd>Git log<CR>", desc = "View Log" },
+    { "<leader>glp", "<cmd>Git log -p<CR>", desc = "Log with Patches" },
+    { "<leader>glg", "<cmd>Git log --graph --oneline<CR>", desc = "Graph Log" },
 
-      -- Branch management
-      b = {
-        name = "Branch",
-        l = { "<cmd>Git branch<CR>", "List branches" },
-        c = { "<cmd>Git checkout -b ", "Create branch" },
-        s = { "<cmd>Git checkout ", "Switch branch" },
-      },
+    -- Branch management
+    { "<leader>gbc", "<cmd>Git checkout -b ", desc = "Create Branch" },
+    { "<leader>gbs", "<cmd>Git checkout ", desc = "Switch Branch" },
 
-      -- Remote operations
-      r = {
-        name = "Remote",
-        p = { "<cmd>Git push<CR>", "Push" },
-        P = { "<cmd>Git push -u origin HEAD<CR>", "Push set upstream" },
-        f = { "<cmd>Git pull<CR>", "Pull" },
-        F = { "<cmd>Git fetch<CR>", "Fetch" },
-      },
+    -- Remote operations
+    { "<leader>gP", "<cmd>Git push -u origin HEAD<CR>", desc = "Push Upstream" },
+    { "<leader>gF", "<cmd>Git fetch<CR>", desc = "Fetch" },
 
-      -- Stash operations
-      z = {
-        name = "Stash",
-        s = { "<cmd>Git stash<CR>", "Stash changes" },
-        p = { "<cmd>Git stash pop<CR>", "Pop stash" },
-        a = { "<cmd>Git stash apply<CR>", "Apply stash" },
-        l = { "<cmd>Git stash list<CR>", "List stashes" },
-      },
+    -- Stash operations
+    { "<leader>gz", "<cmd>Git stash<CR>", desc = "Stash" },
+    { "<leader>gzp", "<cmd>Git stash pop<CR>", desc = "Stash Pop" },
+    { "<leader>gza", "<cmd>Git stash apply<CR>", desc = "Stash Apply" },
+    { "<leader>gzl", "<cmd>Git stash list<CR>", desc = "Stash List" },
 
-      -- Blame (complementing gitsigns blame)
-      B = { "<cmd>Git blame<CR>", "Blame (Fugitive)" },
+    -- Blame
+    { "<leader>gB", "<cmd>Git blame<CR>", desc = "Blame" },
 
-      -- Misc
-      m = { "<cmd>Git merge<CR>", "Merge" },
-      w = { "<cmd>Gwrite<CR>", "Write & stage file" },
-      d = { "<cmd>Gdiffsplit<CR>", "Diff split" },
-    }
-  }, { prefix = "<leader>f" }) -- Using f-prefix to avoid conflicts
+    -- Misc
+    { "<leader>gm", "<cmd>Git merge<CR>", desc = "Merge" },
+    { "<leader>gw", "<cmd>Gwrite<CR>", desc = "Write & Stage" },
+    { "<leader>gd", "<cmd>Gdiffsplit<CR>", desc = "Diff Split" },
+  })
 end
 
 -- Set up autocmds for fugitive buffers
