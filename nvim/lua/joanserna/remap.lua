@@ -34,8 +34,12 @@ vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
 
 -- Quickfix navigation
-vim.keymap.set("n", "<C-k>", "<cmd>cnext<CR>zz")
-vim.keymap.set("n", "<C-j>", "<cmd>cprevious<CR>zz")
+vim.keymap.set("n", "]q", "<cmd>cnext<CR>zz")
+vim.keymap.set("n", "[q", "<cmd>cprevious<CR>zz")
+
+-- Buffer navigation
+vim.keymap.set("n", "<C-h>", ":bprevious<CR>", opts)
+vim.keymap.set("n", "<C-l>", ":bnext<CR>", opts)
 
 -- Close quickfix window
 vim.api.nvim_create_autocmd("FileType", {
