@@ -1,29 +1,18 @@
-require 'nvim-treesitter.configs'.setup {
-  ensure_installed = {
-    "javascript",
-    "typescript",
-    "python",
-    "html",
-    "css",
-    "scss",
-    "angular",
-    "go",         -- Add Go language support
-    "gomod",      -- Add Go module support
-    "gowork",     -- Add Go workspace support
+require('nvim-treesitter').install({
+  "javascript", "typescript",
+  "python",
+  "html", "css", "scss",
+  "go", "gomod", "gowork",
+  "lua",
+})
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = {
+    'javascript', 'typescript',
+    'python',
+    'html', 'css', 'scss',
+    'go', 'gomod', 'gowork',
+    'lua',
   },
-  sync_install = false,
-  auto_install = true,
-  highlight = {
-    enable = true,
-    additional_vim_regex_highlighting = false
-  },
-  incremental_selection = {
-    enable = true,
-    keymaps = {
-      init_selection = "gnn",
-      node_incremental = "grn",
-      scope_incremental = "grc",
-      node_decremental = "grm",
-    }
-  }
-}
+  callback = function() vim.treesitter.start() end,
+})

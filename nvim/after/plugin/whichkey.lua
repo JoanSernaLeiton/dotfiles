@@ -33,7 +33,11 @@ wk.add({
 
   -- Search Group
   { "<leader>/", group = "Search", icon = "🔍" },
-  { "<leader>ff", function() require("telescope.builtin").find_files() end, desc = "Find Files" },
+  { "<leader>ff", function()
+    require("telescope.builtin").find_files({
+      find_command = { "fd", "--type", "f", "--hidden", "--follow", "--no-ignore-vcs", "--exclude", ".git", "--exclude", "node_modules" },
+    })
+  end, desc = "Find All Files" },
   { "<leader>fb", function() require("telescope.builtin").buffers() end, desc = "Find Buffers" },
   { "<leader>fh", function() require("telescope.builtin").help_tags() end, desc = "Find Help" },
   { "<leader>fp", function() require("telescope.builtin").commands() end, desc = "Find Commands" },
@@ -62,6 +66,7 @@ wk.add({
   { "<leader>tt", "<cmd>ToggleTerm<CR>", desc = "New Terminal" },
   { "<leader>tv", "<cmd>vsplit<CR><cmd>ToggleTerm<CR>", desc = "Vertical Terminal" },
   { "<leader>ts", "<cmd>split<CR><cmd>ToggleTerm<CR>", desc = "Horizontal Terminal" },
+  { "<leader>td", function() require("lazydocker").open() end, desc = "Lazydocker" },
 
   -- Window Group
   { "<leader>w", group = "Window", icon = "🪟" },

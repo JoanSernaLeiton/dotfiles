@@ -100,7 +100,7 @@ install_tmux() {
 install_nvim() {
     info "── nvim ──"
     ensure_brew
-    brew_install neovim
+    brew_install neovim code-minimap tree-sitter-cli
 
     mkdir -p "$HOME/.config/nvim"
     mkdir -p "$HOME/.local/share/nvim"/{backup,swap,undo}
@@ -173,7 +173,7 @@ install_node() {
 install_core() {
     info "── core ──"
     ensure_brew
-    brew_install ripgrep fzf bat go gcc cmake bazel ag shfmt
+    brew_install ripgrep fd fzf bat go gcc cmake bazel ag shfmt lazydocker
     # Run fzf install for keybindings/completion (idempotent)
     if [[ -f "$(brew --prefix)/opt/fzf/install" ]]; then
         info "Setting up fzf keybindings..."
@@ -226,7 +226,7 @@ list_modules() {
     echo "  kitty   - Kitty terminal config"
     echo "  python  - Python + pip + pipenv + pynvim"
     echo "  node    - fnm (Node version manager)"
-    echo "  core    - ripgrep, fzf, bat, go, gcc, cmake, bazel, ag, shfmt"
+    echo "  core    - ripgrep, fzf, bat, go, gcc, cmake, bazel, ag, shfmt, lazydocker"
     echo "  fonts   - Nerd Fonts (macOS only)"
     echo ""
     echo "Usage:"
