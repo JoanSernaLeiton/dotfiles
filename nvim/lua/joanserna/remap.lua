@@ -16,6 +16,10 @@ vim.keymap.set("n", "<esc>", ":noh<return><esc>", opts)
 -- Quick save
 vim.keymap.set("n", "<C-s>", ":wa<CR>", opts)
 
+-- Buffer navigation
+vim.keymap.set("n", "<C-h>", ":bprevious<CR>", opts)
+vim.keymap.set("n", "<C-l>", ":bnext<CR>", opts)
+
 -- Quick quit buffer
 vim.keymap.set("n", "<leader>qt", ":bd<CR>", opts)
 

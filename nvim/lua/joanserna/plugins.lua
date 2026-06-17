@@ -79,6 +79,16 @@ return {
     -- order to load the plugin when the command is run for the first time
   },
 
+  {
+    "mgierada/lazydocker.nvim",
+    lazy = true,
+    keys = { { "<leader>td", function() require("lazydocker").open() end, desc = "Lazydocker" } },
+    dependencies = { "nvim-lua/plenary.nvim" },
+    config = function()
+      require("lazydocker").setup({})
+    end,
+  },
+
 
   -- LSP and Completion
   {
@@ -153,6 +163,8 @@ return {
   -- Treesitter
   {
     "nvim-treesitter/nvim-treesitter",
+    branch = "main",
+    lazy = false,
     build = ":TSUpdate",
   },
 
@@ -161,13 +173,6 @@ return {
     'kkoomen/vim-doge',
     build = ':call doge#install()'
   },
-  -- PlantUML support
-  { 'aklt/plantuml-syntax' },
-  { 'weirongxu/plantuml-previewer.vim' },
-  { 'tyru/open-browser.vim' },
-  { 'javiorfo/nvim-soil' },
-  { 'javiorfo/nvim-nyctophilia' },
-
   -- Clipboard and history
   {
     "AckslD/nvim-neoclip.lua",
