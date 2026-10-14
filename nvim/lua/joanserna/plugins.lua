@@ -26,7 +26,16 @@ return {
       require('mini.surround').setup()
     end,
   },
-  { "wfxr/minimap.vim" },
+  {
+    "wfxr/minimap.vim",
+    -- `init` runs before the plugin's own plugin/minimap.vim is sourced;
+    -- these globals are read there with `if !exists(...)`, so setting them
+    -- from an after/plugin/*.lua file (which loads later) was a no-op.
+    init = function()
+      vim.g.minimap_highlight_search = 1
+      vim.g.minimap_git_colors = 1
+    end,
+  },
   { "matze/vim-move", event = "VeryLazy" },
   { "petertriho/nvim-scrollbar" },
   { "mbbill/undotree" },
@@ -34,12 +43,41 @@ return {
     "akinsho/toggleterm.nvim",
     version = "*",
     event = "VeryLazy",
+    cmd = { "ToggleTerm", "ToggleTermToggleAll", "TermExec" },
+    opts = {
+      size = function(term)
+        if term.direction == "horizontal" then
+          return 15
+        elseif term.direction == "vertical" then
+          return vim.o.columns * 0.4
+        end
+      end,
+      open_mapping = [[<c-\>]],
+      hide_numbers = true,
+      shade_filetypes = {},
+      shade_terminals = true,
+      shading_factor = 2,
+      start_in_insert = true,
+      insert_mappings = true,
+      persist_size = true,
+      direction = "horizontal",
+      close_on_exit = true,
+      shell = vim.o.shell,
+      float_opts = {
+        border = "curved",
+        winblend = 0,
+        highlights = {
+          border = "Normal",
+          background = "Normal",
+        },
+      },
+    },
   },
   {
     "startup-nvim/startup.nvim",
     dependencies = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim", "nvim-telescope/telescope-file-browser.nvim" },
     config = function()
-      require "startup".setup()
+      require("joanserna.configs.startup").setup()
     end
   },
   {
@@ -51,7 +89,62 @@ return {
     "lewis6991/gitsigns.nvim",
     event = "BufReadPre",
     config = function()
-      require('gitsigns').setup()
+      require('gitsigns').setup({
+        signs = {
+          add = { text = '┃' },
+          change = { text = '┃' },
+          delete = { text = '_' },
+          topdelete = { text = '‾' },
+          changedelete = { text = '~' },
+          untracked = { text = '┆' },
+        },
+
+        signs_staged = {
+          add = { text = '┃' },
+          change = { text = '┃' },
+          delete = { text = '_' },
+          topdelete = { text = '‾' },
+          changedelete = { text = '~' },
+          untracked = { text = '┆' },
+        },
+
+        -- Performance settings
+        signs_staged_enable = true,
+        signcolumn = true,
+        numhl = true,
+        linehl = false,
+        word_diff = false,
+        watch_gitdir = {
+          follow_files = true,
+          interval = 1000,
+        },
+        attach_to_untracked = true,
+
+        -- Blame visualization
+        current_line_blame = true,
+        current_line_blame_opts = {
+          virt_text = true,
+          virt_text_pos = 'eol',
+          delay = 300,
+          ignore_whitespace = false,
+          virt_text_priority = 100,
+        },
+        current_line_blame_formatter = '<author>, <author_time:%Y-%m-%d> - <summary>',
+
+        -- System settings
+        sign_priority = 6,
+        update_debounce = 100,
+        max_file_length = 8000,
+
+        -- Preview configuration
+        preview_config = {
+          border = 'rounded',
+          style = 'minimal',
+          relative = 'cursor',
+          row = 0,
+          col = 1,
+        },
+      })
       require("scrollbar.handlers.gitsigns").setup()
     end
   },
@@ -117,14 +210,38 @@ return {
   {
     "j-hui/fidget.nvim",
     event = "VeryLazy",
+    opts = {
+      notification = {
+        override_vim_notify = true,
+        window = {
+          avoid = { "NvimTree" },
+        },
+      },
+    },
   },
   {
     "stevearc/conform.nvim",
-    -- Optional: Make conform load only when needed
-    -- event = { "BufWritePre", "BufNewFile" }, -- Load formatters before saving or on new files
     cmd = "ConformInfo", -- Allow calling :ConformInfo command anytime
-    -- Conform's configuration will be added in Step 4 below
-    opts = {},           -- Placeholder for now, config function will replace this
+    opts = {
+      formatters_by_ft = {
+        lua = { "stylua" },
+        javascript = { "prettierd", "prettier" },
+        typescript = { "prettierd", "prettier" },
+        javascriptreact = { "prettierd", "prettier" },
+        typescriptreact = { "prettierd", "prettier" },
+        svelte = { "prettierd", "prettier" },
+        css = { "prettierd", "prettier" },
+        html = { "prettierd", "prettier" },
+        json = { "prettierd", "prettier" },
+        yaml = { "prettierd", "prettier" },
+        markdown = { "prettierd", "prettier" },
+        graphql = { "prettierd", "prettier" },
+        python = { "ruff_format", "black" },
+        sh = { "shfmt" },
+      },
+      log_level = vim.log.levels.WARN,
+      notify_on_error = true,
+    },
   },
   -- Telescope and searching
   {
@@ -171,7 +288,22 @@ return {
   -- Documentation and comments
   {
     'kkoomen/vim-doge',
-    build = ':call doge#install()'
+    build = ':call doge#install()',
+    -- Globals must be set before plugin/doge.vim is sourced, so they live in
+    -- `init` (an after/plugin file would run too late).
+    init = function()
+      vim.g.doge_enable_mappings = 1
+      vim.g.doge_doc_standard_lua = "ldoc"
+      vim.g.doge_doc_standard_python = "google"
+      vim.g.doge_doc_standard_javascript = "jsdoc"
+      vim.g.doge_doc_standard_typescript = "jsdoc"
+      vim.g.doge_doc_standard_rs = "rustdoc"
+      vim.g.doge_mapping_comment_jump_forward = "<C-j>"
+      vim.g.doge_mapping_comment_jump_backward = "<C-k>"
+      vim.g.doge_buffer_mappings = 1
+      vim.g.doge_comment_jump_modes = { "n", "i", "s" }
+      vim.g.doge_mapping = "<Leader>dg"
+    end,
   },
   -- Clipboard and history
   {

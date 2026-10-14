@@ -243,12 +243,14 @@ function M.setup()
   -- Global keymaps (outside tree buffer)
   wk.add({
     { "<leader>e", api.tree.toggle, desc = "Toggle Explorer" },
+    -- Lives under <leader>b (Buffer group) rather than <leader>ec to avoid
+    -- an ambiguous prefix against the <leader>e toggle above.
     {
-      "<leader>ec",
+      "<leader>be",
       function()
         api.tree.find_file({ open = true, focus = true, update_root = true })
       end,
-      desc = "Find Current File"
+      desc = "Reveal Current File in Explorer"
     },
   })
 

@@ -64,12 +64,8 @@ require("diffview").setup({
       -- Integrate with LSP if available (minimally)
       if vim.lsp.buf_is_attached(bufnr) then
         -- Disable some heavy LSP features in diff views
-        local client_ids = vim.lsp.get_active_clients({ bufnr = bufnr })
-        for _, client_id in ipairs(client_ids) do
-          local client = vim.lsp.get_client_by_id(client_id)
-          if client then
-            client.server_capabilities.semanticTokensProvider = nil
-          end
+        for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+          client.server_capabilities.semanticTokensProvider = nil
         end
       end
     end,

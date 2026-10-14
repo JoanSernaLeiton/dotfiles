@@ -1,8 +1,10 @@
-# Neovim
+# macOS
+.DS_Store
+
+# Neovim (lazy-lock.json IS tracked so fresh installs get the same plugin versions)
 .netrwhist
 *.swp
 *.swo
-lazy-lock.json
 nvim/plugin/packer_compiled.lua
 .config/nvim/lazy-rocks/
 .local/share/nvim/lazy-rocks/

@@ -17,102 +17,90 @@ local function get_lsp_attach_config()
     local opts = { buffer = bufnr, noremap = true, silent = true }
 
     -- Register LSP keymaps with WhichKey
-    wk.register({
+    -- Note: Workspace/TypeScript/UI toggles live under <leader>l* (not their
+    -- own top-level <leader>w/<leader>t/<leader>u) to avoid clashing with the
+    -- global Window/Terminal/Undo Tree groups defined in whichkey.lua.
+    wk.add({
       -- Navigation mappings (g prefix)
-      g = {
-        name = "LSP Navigation",
-        d = { vim.lsp.buf.definition, "Go to Definition" },
-        D = { vim.lsp.buf.declaration, "Go to Declaration" },
-        i = { vim.lsp.buf.implementation, "Go to Implementation" },
-        t = { vim.lsp.buf.type_definition, "Go to Type Definition" },
-        r = { vim.lsp.buf.references, "Find References" },
-        s = { vim.lsp.buf.signature_help, "Show Signature Help" },
-      },
+      { "g", group = "LSP Navigation", buffer = bufnr },
+      { "gd", vim.lsp.buf.definition, desc = "Go to Definition", buffer = bufnr },
+      { "gD", vim.lsp.buf.declaration, desc = "Go to Declaration", buffer = bufnr },
+      { "gi", vim.lsp.buf.implementation, desc = "Go to Implementation", buffer = bufnr },
+      { "gt", vim.lsp.buf.type_definition, desc = "Go to Type Definition", buffer = bufnr },
+      { "gs", function() vim.lsp.buf.signature_help({ border = "rounded" }) end, desc = "Show Signature Help", buffer = bufnr },
+      -- "gr" (Find References) intentionally not bound here: Neovim 0.11+
+      -- already maps "grr" to vim.lsp.buf.references by default, and a bare
+      -- "gr" would be an ambiguous prefix of "gra"/"gri"/"grn"/"grr"/"grt"/"grx".
 
       -- Documentation hover
-      K = { vim.lsp.buf.hover, "Show Documentation" },
+      { "K", function() vim.lsp.buf.hover({ border = "rounded" }) end, desc = "Show Documentation", buffer = bufnr },
 
       -- Diagnostics navigation
-      ["["] = { d = { vim.diagnostic.goto_prev, "Previous Diagnostic" } },
-      ["]"] = { d = { vim.diagnostic.goto_next, "Next Diagnostic" } },
+      { "[d", vim.diagnostic.goto_prev, desc = "Previous Diagnostic", buffer = bufnr },
+      { "]d", vim.diagnostic.goto_next, desc = "Next Diagnostic", buffer = bufnr },
 
-      -- Leader mappings
-      ["<leader>l"] = {
-        -- Code actions - add to the existing structure registered in whichkey.lua
-        c = {
-          name = "Code",
-          a = { vim.lsp.buf.code_action, "Code Actions" },
-          r = { vim.lsp.buf.rename, "Rename Symbol" },
-          f = { function() vim.lsp.buf.format({ async = true }) end, "Format" },
-        },
+      -- Code actions - add to the existing structure registered in whichkey.lua
+      { "<leader>lc", group = "Code", buffer = bufnr },
+      { "<leader>lca", vim.lsp.buf.code_action, desc = "Code Actions", buffer = bufnr },
+      { "<leader>lcr", vim.lsp.buf.rename, desc = "Rename Symbol", buffer = bufnr },
+      { "<leader>lcf", function() vim.lsp.buf.format({ async = true }) end, desc = "Format", buffer = bufnr },
 
-        -- Diagnostics - add to the existing structure registered in whichkey.lua
-        d = {
-          name = "Diagnostics",
-          d = { vim.diagnostic.open_float, "Show Details" },
-          l = { vim.diagnostic.setloclist, "List All" },
-          x = {
-            function()
-              local opts = {
-                focusable = true,
-                close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
-                border = 'rounded',
-                source = 'always',
-                prefix = ' ',
-                scope = 'cursor',
-              }
-              vim.diagnostic.open_float(opts)
-            end,
-            "Show Focused Floating Diagnostic"
-          },
-        },
+      -- Diagnostics - add to the existing structure registered in whichkey.lua
+      { "<leader>ld", group = "Diagnostics", buffer = bufnr },
+      { "<leader>ldd", vim.diagnostic.open_float, desc = "Show Details", buffer = bufnr },
+      { "<leader>ldl", vim.diagnostic.setloclist, desc = "List All", buffer = bufnr },
+      {
+        "<leader>ldx",
+        function()
+          vim.diagnostic.open_float({
+            focusable = true,
+            close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
+            border = 'rounded',
+            source = 'always',
+            prefix = ' ',
+            scope = 'cursor',
+          })
+        end,
+        desc = "Show Focused Floating Diagnostic",
+        buffer = bufnr,
       },
 
       -- Workspace
-      ["<leader>w"] = {
-        name = "Workspace",
-        a = { vim.lsp.buf.add_workspace_folder, "Add Folder" },
-        r = { vim.lsp.buf.remove_workspace_folder, "Remove Folder" },
-        l = { function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, "List Folders" },
+      { "<leader>lw", group = "Workspace", buffer = bufnr },
+      { "<leader>lwa", vim.lsp.buf.add_workspace_folder, desc = "Add Folder", buffer = bufnr },
+      { "<leader>lwr", vim.lsp.buf.remove_workspace_folder, desc = "Remove Folder", buffer = bufnr },
+      {
+        "<leader>lwl",
+        function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end,
+        desc = "List Folders",
+        buffer = bufnr,
       },
 
       -- TypeScript specific
-      ["<leader>t"] = {
-        name = "TypeScript",
-        i = { "<cmd>TypescriptAddMissingImports<CR>", "Add Missing Imports" },
-        o = { "<cmd>TypescriptOrganizeImports<CR>", "Organize Imports" },
-        u = { "<cmd>TypescriptRemoveUnused<CR>", "Remove Unused" },
-        f = { "<cmd>TypescriptFixAll<CR>", "Fix All" },
-      },
-    }, { buffer = bufnr })
+      { "<leader>lt", group = "TypeScript", buffer = bufnr },
+      { "<leader>lti", "<cmd>TypescriptAddMissingImports<CR>", desc = "Add Missing Imports", buffer = bufnr },
+      { "<leader>lto", "<cmd>TypescriptOrganizeImports<CR>", desc = "Organize Imports", buffer = bufnr },
+      { "<leader>ltu", "<cmd>TypescriptRemoveUnused<CR>", desc = "Remove Unused", buffer = bufnr },
+      { "<leader>ltf", "<cmd>TypescriptFixAll<CR>", desc = "Fix All", buffer = bufnr },
+    })
 
     -- Visual mode mappings
-    wk.register({
-      ["<leader>l"] = {
-        c = {
-          name = "Code",
-          a = { vim.lsp.buf.code_action, "Code Actions" },
-          f = { function() vim.lsp.buf.format({ async = true }) end, "Format Selection" },
-        }
+    wk.add({
+      { "<leader>lc", group = "Code", mode = "v", buffer = bufnr },
+      { "<leader>lca", vim.lsp.buf.code_action, desc = "Code Actions", mode = "v", buffer = bufnr },
+      {
+        "<leader>lcf",
+        function() vim.lsp.buf.format({ async = true }) end,
+        desc = "Format Selection",
+        mode = "v",
+        buffer = bufnr,
       },
-    }, { mode = "v", buffer = bufnr })
+    })
 
     -- Insert mode mappings
-    wk.register({
-      ["<C-k>"] = { vim.lsp.buf.signature_help, "Show Signature Help" },
-    }, { mode = "i", buffer = bufnr })
-
-    -- Inlay hints toggle (if supported)
-    if client:supports_method("textDocument/inlayHint") and vim.lsp.inlay_hint then
-      wk.register({
-        ["<leader>u"] = {
-          name = "UI",
-          h = { function()
-            vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
-          end, "Toggle Inlay Hints" },
-        }
-      }, { buffer = bufnr })
-    end
+    wk.add({
+      { "<C-k>", function() vim.lsp.buf.signature_help({ border = "rounded" }) end, desc = "Show Signature Help", mode = "i", buffer = bufnr },
+    })
 
     -- Format on save if supported
     -- if client:supports_method("textDocument/formatting") then
@@ -192,10 +180,22 @@ vim.diagnostic.config({
 -----------------------------------
 -- LSP Core Configuration
 -----------------------------------
-lsp_zero.extend_lspconfig({
-  float_border = 'rounded',
-  lsp_attach = get_lsp_attach_config(),
-  capabilities = require('cmp_nvim_lsp').default_capabilities()
+-- mason-lspconfig no longer supports the old `setup({ handlers = ... })`
+-- API; it auto-enables installed servers via vim.lsp.enable() instead.
+-- Capabilities/settings are layered on via vim.lsp.config(), and keymaps
+-- are wired through a plain LspAttach autocmd so they apply no matter how
+-- a server gets started.
+vim.lsp.config('*', {
+  capabilities = require('cmp_nvim_lsp').default_capabilities(),
+})
+
+vim.api.nvim_create_autocmd('LspAttach', {
+  callback = function(args)
+    local client = vim.lsp.get_client_by_id(args.data.client_id)
+    if client then
+      get_lsp_attach_config()(client, args.buf)
+    end
+  end,
 })
 
 -----------------------------------
@@ -247,65 +247,56 @@ for _, server_info in ipairs(project_files) do
 end
 
 -- Combine servers
-local ensure_installed = vim.tbl_extend('force', base_servers, conditional_servers)
+-- list_extend, not tbl_extend: tbl_extend merges list tables by index, so
+-- conditional servers would overwrite base servers instead of appending.
+local ensure_installed = vim.list_extend(vim.deepcopy(base_servers), conditional_servers)
 
 -----------------------------------
 -- Server Setup
 -----------------------------------
 mason_lspconfig.setup({
   ensure_installed = ensure_installed,
-  handlers = {
-    lsp_zero.default_setup,
+})
 
-    -- TypeScript Server Configuration
-    ['ts_ls'] = function()
-      local common_inlay_hints = {
-        includeInlayParameterNameHints = "all", -- 'none', 'literals', 'all'
-        includeInlayFunctionParameterTypeHints = true,
-        includeInlayVariableTypeHints = true, -- Recommended: true
-        includeInlayPropertyDeclarationTypeHints = true,
-        includeInlayFunctionLikeReturnTypeHints = true,
-        includeInlayEnumMemberValueHints = true,
-      }
-      require('lspconfig').ts_ls.setup({
-        on_attach = get_lsp_attach_config(),
-        settings = {
-          tsserver_max_ts_server_memory = 4096, -- e.g., 4GB
-          typescript = {
-            inlayHints = common_inlay_hints
-          },
-          javascript = {
-            inlayHints = common_inlay_hints
-          }
-        }
-      })
-    end,
+-- TypeScript Server Configuration
+local common_inlay_hints = {
+  includeInlayParameterNameHints = "all", -- 'none', 'literals', 'all'
+  includeInlayFunctionParameterTypeHints = true,
+  includeInlayVariableTypeHints = true, -- Recommended: true
+  includeInlayPropertyDeclarationTypeHints = true,
+  includeInlayFunctionLikeReturnTypeHints = true,
+  includeInlayEnumMemberValueHints = true,
+}
 
-    -- Golang Configuration
-    ['gopls'] = function()
-      require('lspconfig').gopls.setup({
-        on_attach = get_lsp_attach_config(),
-        settings = {
-          gopls = {
-            analyses = { unusedparams = true },
-            staticcheck = true,
-            gofumpt = true,
-          },
-        }
-      })
-    end,
+vim.lsp.config('ts_ls', {
+  settings = {
+    tsserver_max_ts_server_memory = 4096, -- e.g., 4GB
+    typescript = {
+      inlayHints = common_inlay_hints
+    },
+    javascript = {
+      inlayHints = common_inlay_hints
+    }
+  }
+})
 
-    -- PHP/Laravel Configuration
-    ['intelephense'] = function()
-      require('lspconfig').intelephense.setup({
-        on_attach = get_lsp_attach_config(),
-        settings = {
-          intelephense = {
-            files = { maxSize = 1000000 },
-          },
-        }
-      })
-    end,
+-- Golang Configuration
+vim.lsp.config('gopls', {
+  settings = {
+    gopls = {
+      analyses = { unusedparams = true },
+      staticcheck = true,
+      gofumpt = true,
+    },
+  }
+})
+
+-- PHP/Laravel Configuration
+vim.lsp.config('intelephense', {
+  settings = {
+    intelephense = {
+      files = { maxSize = 1000000 },
+    },
   }
 })
 

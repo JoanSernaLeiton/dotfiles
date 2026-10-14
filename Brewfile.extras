@@ -1,0 +1,8 @@
+# Optional apps (communication / remote access / extra browsers).
+# Installed only with `./install.sh --extras`.
+
+cask "slack"
+cask "zoom"
+cask "anydesk"
+cask "google-chrome@dev"
+cask "firefox"

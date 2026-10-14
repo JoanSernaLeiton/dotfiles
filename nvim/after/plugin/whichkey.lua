@@ -31,8 +31,8 @@ wk.add({
   { "<leader>os", function() require("opencode").select() end, desc = "Select Action" },
   { "<leader>ot", function() require("opencode").toggle() end, desc = "Toggle OpenCode" },
 
-  -- Search Group
-  { "<leader>/", group = "Search", icon = "🔍" },
+  -- Search Group (children are <leader>ff/fb/fh/fp, so the group lives at "f")
+  { "<leader>f", group = "Search", icon = "🔍" },
   { "<leader>ff", function()
     require("telescope.builtin").find_files({
       find_command = { "fd", "--type", "f", "--hidden", "--follow", "--no-ignore-vcs", "--exclude", ".git", "--exclude", "node_modules" },
@@ -41,6 +41,7 @@ wk.add({
   { "<leader>fb", function() require("telescope.builtin").buffers() end, desc = "Find Buffers" },
   { "<leader>fh", function() require("telescope.builtin").help_tags() end, desc = "Find Help" },
   { "<leader>fp", function() require("telescope.builtin").commands() end, desc = "Find Commands" },
+  { "<leader>fk", function() require("telescope.builtin").keymaps() end, desc = "Find Keymaps (Actions)" },
 
   -- Buffer Group
   { "<leader>b", group = "Buffer", icon = "📋" },
@@ -53,10 +54,11 @@ wk.add({
 
   -- Code Group
   { "<leader>c", group = "Code", icon = "💻" },
-  { "<leader>cf", function() vim.lsp.buf.format({ async = true }) end, desc = "Format Code" },
+  { "<leader>cf", function() require("conform").format({ async = true, lsp_fallback = true }) end, desc = "Format Code", mode = { "n", "v" } },
   { "<leader>ca", function() vim.lsp.buf.code_action() end, desc = "Code Actions" },
   { "<leader>cr", function() vim.lsp.buf.rename() end, desc = "Rename Symbol" },
   { "<leader>ch", function() vim.lsp.buf.hover() end, desc = "Hover Docs" },
+  { "<leader>ci", function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled()) end, desc = "Toggle Inlay Hints" },
 
   -- Git Group (basic shortcuts, detailed mappings in git_config.lua)
   { "<leader>g", group = "Git", icon = "📦" },

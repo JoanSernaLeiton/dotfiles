@@ -1,0 +1,21 @@
+[user]
+	name = Joan Serna
+	# email lives in ~/.gitconfig.local (machine-specific, created by install.sh)
+
+[init]
+	defaultBranch = main
+
+[checkout]
+	defaultRemote = origin
+
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential
+
+# Machine-specific overrides (email, signing key, work includeIf, ...). Keep last.
+[include]
+	path = ~/.gitconfig.local

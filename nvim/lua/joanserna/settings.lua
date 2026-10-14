@@ -39,13 +39,6 @@ vim.opt.hlsearch = false
 vim.opt.incsearch = true
 vim.opt.scrolloff = 8
 vim.opt.colorcolumn = "80"
-vim.diagnostic.config({
-  virtual_text = false,
-  signs = true,
-  update_in_insert = false,
-  underline = true,
-  severity_sort = true,
-  float = false,
-})
+-- vim.diagnostic.config lives in after/plugin/ui-theme.lua
 vim.opt.signcolumn = 'yes'
 vim.rainbow_active = 1

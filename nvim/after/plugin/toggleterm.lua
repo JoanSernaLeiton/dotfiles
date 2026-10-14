@@ -1,35 +1,8 @@
 -- ToggleTerm configuration
-
-local toggleterm = require('toggleterm')
-
-toggleterm.setup({
-  size = function(term)
-    if term.direction == "horizontal" then
-      return 15
-    elseif term.direction == "vertical" then
-      return vim.o.columns * 0.4
-    end
-  end,
-  open_mapping = [[<c-\>]],
-  hide_numbers = true,
-  shade_filetypes = {},
-  shade_terminals = true,
-  shading_factor = 2,
-  start_in_insert = true,
-  insert_mappings = true,
-  persist_size = true,
-  direction = "horizontal",
-  close_on_exit = true,
-  shell = vim.o.shell,
-  float_opts = {
-    border = "curved",
-    winblend = 0,
-    highlights = {
-      border = "Normal",
-      background = "Normal",
-    },
-  },
-})
+-- toggleterm.setup() now lives in the lazy.nvim spec (plugins.lua) as `opts`,
+-- so requiring the plugin here doesn't force it to load eagerly at startup.
+-- These keymaps use plain <cmd>/terminal-mode command strings, not
+-- require('toggleterm'), so they don't force the plugin to load either.
 
 -- Quick access with Ctrl-\
 vim.keymap.set({ "n", "i", "t" }, "<C-\\>", "<cmd>ToggleTerm<CR>", { noremap = true, silent = true, desc = "Toggle Terminal" })

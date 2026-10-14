@@ -181,8 +181,10 @@ wk.add({
 vim.api.nvim_create_autocmd("LspAttach", {
   group = vim.api.nvim_create_augroup("UserLspTelescope", {}),
   callback = function(args)
-    vim.keymap.set("n", "<leader>dd", function()
+    -- Lives under <leader>ld (Diagnostics, see lsp-zero.lua) rather than
+    -- <leader>dd to avoid an ambiguous prefix against vim-doge's <leader>d.
+    vim.keymap.set("n", "<leader>ldb", function()
       builtin.diagnostics({ bufnr = 0 })
-    end, { silent = true, desc = "Buffer Diagnostics", buffer = args.buf })
+    end, { silent = true, desc = "Buffer Diagnostics (Telescope)", buffer = args.buf })
   end,
 })

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 # ── Colors & Logging ─────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -14,253 +14,269 @@ success() { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 
-DOTFILES="$HOME/dotfiles"
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
-
-# ── OS Detection ─────────────────────────────────────────────────────
-OS="$(uname)"
+EXTRAS=false
 
 # ── Helpers ──────────────────────────────────────────────────────────
+load_brew_env() {
+    local b
+    for b in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
+        if [[ -x "$b" ]]; then
+            eval "$("$b" shellenv)"
+            return 0
+        fi
+    done
+    return 1
+}
+
 ensure_brew() {
-    if command -v brew &>/dev/null; then
+    if command -v brew &>/dev/null || load_brew_env; then
         return
     fi
     info "Installing Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    if [[ "$OS" == "Linux" ]]; then
-        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    fi
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    load_brew_env
     success "Homebrew installed"
-}
-
-brew_install() {
-    local pkg
-    for pkg in "$@"; do
-        if brew list "$pkg" &>/dev/null; then
-            info "$pkg already installed"
-        else
-            info "Installing $pkg..."
-            brew install "$pkg"
-        fi
-    done
-}
-
-brew_install_cask() {
-    local pkg
-    for pkg in "$@"; do
-        if brew list --cask "$pkg" &>/dev/null; then
-            info "$pkg (cask) already installed"
-        else
-            info "Installing $pkg (cask)..."
-            brew install --cask "$pkg"
-        fi
-    done
 }
 
 backup_if_exists() {
     local target="$1"
     if [[ -e "$target" && ! -L "$target" ]]; then
         mkdir -p "$BACKUP_DIR"
-        local name
-        name="$(basename "$target")"
-        warn "Backing up $target → $BACKUP_DIR/$name"
-        mv "$target" "$BACKUP_DIR/$name"
+        warn "Backing up $target → $BACKUP_DIR/$(basename "$target")"
+        mv "$target" "$BACKUP_DIR/$(basename "$target")"
     fi
 }
 
 symlink() {
     local src="$1" dst="$2"
+    mkdir -p "$(dirname "$dst")"
     backup_if_exists "$dst"
-    ln -sf "$src" "$dst"
-    success "Linked $src → $dst"
+    ln -sfn "$src" "$dst"
+    success "Linked $dst → $src"
+}
+
+# Ask on the terminal even when this script is piped from curl.
+prompt() {
+    local question="$1" answer=""
+    if [[ -r /dev/tty ]]; then
+        read -r -p "$question " answer </dev/tty || true
+    fi
+    echo "$answer"
 }
 
 # ── Modules ──────────────────────────────────────────────────────────
 
-MODULES=(tmux nvim zsh kitty python node core fonts)
+MODULES=(brew zsh git tmux kitty nvim node python claude macos)
 
-install_tmux() {
-    info "── tmux ──"
+install_brew() {
+    info "── brew ──"
     ensure_brew
-    brew_install tmux
-    if [[ "$OS" == "Darwin" ]]; then
-        brew_install reattach-to-user-namespace
+    brew update
+    brew bundle --file="$DOTFILES/Brewfile" || warn "Some Brewfile entries failed (see above)"
+    if [[ "$EXTRAS" == true ]]; then
+        brew bundle --file="$DOTFILES/Brewfile.extras" || warn "Some Brewfile.extras entries failed (see above)"
     fi
-    symlink "$DOTFILES/tmux.conf" "$HOME/.tmux.conf"
-    # Install TPM
-    if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
-        info "Installing TPM..."
-        git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
-    else
-        info "TPM already installed"
-    fi
-    success "tmux done"
-}
-
-install_nvim() {
-    info "── nvim ──"
-    ensure_brew
-    brew_install neovim code-minimap tree-sitter-cli
-
-    mkdir -p "$HOME/.config/nvim"
-    mkdir -p "$HOME/.local/share/nvim"/{backup,swap,undo}
-
-    # Remove old symlinks/dirs before creating new ones
-    rm -f "$HOME/.config/nvim/init.lua"
-    rm -rf "$HOME/.config/nvim/lua"
-    rm -rf "$HOME/.config/nvim/after"
-
-    symlink "$DOTFILES/nvim/init.lua" "$HOME/.config/nvim/init.lua"
-    symlink "$DOTFILES/nvim/lua" "$HOME/.config/nvim/lua"
-    symlink "$DOTFILES/nvim/after" "$HOME/.config/nvim/after"
-
-    chmod 755 "$HOME/.config/nvim"
-    chmod 644 "$HOME/.config/nvim/init.lua"
-    success "nvim done"
+    success "brew done"
 }
 
 install_zsh() {
     info "── zsh ──"
-    ensure_brew
+    symlink "$DOTFILES/zsh/zshrc" "$HOME/.zshrc"
+    symlink "$DOTFILES/zsh/p10k.zsh" "$HOME/.p10k.zsh"
+    if [[ ! -f "$HOME/.zshrc.local" ]]; then
+        cp "$DOTFILES/zsh/zshrc.local.example" "$HOME/.zshrc.local"
+        success "Created ~/.zshrc.local (private, untracked)"
+    fi
+    if [[ "$(basename "${SHELL:-}")" != "zsh" ]]; then
+        info "Changing login shell to zsh..."
+        chsh -s "$(command -v zsh)" || warn "chsh failed; run: chsh -s $(command -v zsh)"
+    fi
+    success "zsh done"
+}
 
-    if [[ "$OS" == "Linux" ]]; then
-        if ! command -v zsh &>/dev/null; then
-            info "Installing zsh (apt)..."
-            sudo apt install -y zsh curl build-essential
-        fi
-        if [[ "$(basename "$SHELL")" != "zsh" ]]; then
-            sudo chsh -s "$(which zsh)"
+install_git() {
+    info "── git ──"
+    symlink "$DOTFILES/git/gitconfig" "$HOME/.gitconfig"
+    if [[ ! -f "$HOME/.gitconfig.local" ]]; then
+        local email
+        email="$(prompt "Git email for this machine (blank to skip):")"
+        if [[ -n "$email" ]]; then
+            printf '[user]\n\temail = %s\n' "$email" > "$HOME/.gitconfig.local"
+            success "Created ~/.gitconfig.local"
+        else
+            warn "No git email set; add it to ~/.gitconfig.local"
         fi
     fi
+    success "git done"
+}
 
-    brew_install powerlevel10k zsh-syntax-highlighting zsh-autosuggestions
-
-    symlink "$DOTFILES/zshrc" "$HOME/.zshrc"
-    symlink "$DOTFILES/.p10k.zsh" "$HOME/.p10k.zsh"
-    success "zsh done"
+install_tmux() {
+    info "── tmux ──"
+    symlink "$DOTFILES/tmux/tmux.conf" "$HOME/.tmux.conf"
+    if ! infocmp tmux-256color &>/dev/null; then
+        warn "tmux-256color terminfo missing; colors may be off (set default-terminal to xterm-256color)"
+    fi
+    if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
+        info "Installing TPM..."
+        git clone --depth 1 https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+    fi
+    info "Installing tmux plugins..."
+    "$HOME/.tmux/plugins/tpm/bin/install_plugins" >/dev/null || warn "TPM plugin install failed; press prefix+I inside tmux"
+    success "tmux done"
 }
 
 install_kitty() {
     info "── kitty ──"
-    mkdir -p "$HOME/.config/kitty"
-    symlink "$DOTFILES/kitty.conf" "$HOME/.config/kitty/kitty.conf"
-    symlink "$DOTFILES/theme.conf" "$HOME/.config/kitty/theme.conf"
+    symlink "$DOTFILES/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf"
+    symlink "$DOTFILES/kitty/theme.conf" "$HOME/.config/kitty/theme.conf"
     success "kitty done"
 }
 
-install_python() {
-    info "── python ──"
-    ensure_brew
-    brew_install python
-    info "Upgrading pip..."
-    python3 -m pip install --upgrade pip 2>/dev/null || true
-    info "Installing Python packages..."
-    pip3 install --user pipenv pynvim 2>/dev/null || python3 -m pip install --user pipenv pynvim
-    success "python done"
+install_nvim() {
+    info "── nvim ──"
+    mkdir -p "$HOME/.local/share/nvim"/{backup,swap,undo}
+    symlink "$DOTFILES/nvim/init.lua" "$HOME/.config/nvim/init.lua"
+    symlink "$DOTFILES/nvim/lua" "$HOME/.config/nvim/lua"
+    symlink "$DOTFILES/nvim/after" "$HOME/.config/nvim/after"
+    symlink "$DOTFILES/nvim/lazy-lock.json" "$HOME/.config/nvim/lazy-lock.json"
+    if command -v nvim &>/dev/null; then
+        info "Installing Neovim plugins at locked versions..."
+        nvim --headless "+Lazy! restore" +qa || warn "Lazy restore failed; open nvim and run :Lazy restore"
+    else
+        warn "nvim not found; run './install.sh brew' first"
+    fi
+    success "nvim done"
 }
 
 install_node() {
     info "── node ──"
-    if command -v fnm &>/dev/null; then
-        info "fnm already installed"
-    else
-        info "Installing fnm..."
-        curl -fsSL https://fnm.vercel.app/install | bash
-    fi
-    success "node done"
-}
-
-install_core() {
-    info "── core ──"
-    ensure_brew
-    brew_install ripgrep fd fzf bat go gcc cmake bazel ag shfmt lazydocker
-    # Run fzf install for keybindings/completion (idempotent)
-    if [[ -f "$(brew --prefix)/opt/fzf/install" ]]; then
-        info "Setting up fzf keybindings..."
-        "$(brew --prefix)/opt/fzf/install" --all --no-bash --no-fish 2>/dev/null || true
-    fi
-    success "core done"
-}
-
-install_fonts() {
-    info "── fonts ──"
-    if [[ "$OS" != "Darwin" ]]; then
-        warn "Font cask installation is macOS only, skipping"
+    if ! command -v fnm &>/dev/null; then
+        warn "fnm not found; run './install.sh brew' first"
         return
     fi
-    ensure_brew
-    brew_install_cask font-fira-code \
-                      font-jetbrains-mono \
-                      font-meslo-lg-nerd-font \
-                      font-iosevka
-    success "fonts done"
+    eval "$(fnm env --shell bash)"
+    fnm install --lts
+    fnm default lts-latest
+    success "node done ($(fnm exec --using=default node --version))"
+}
+
+install_python() {
+    info "── python ──"
+    if ! command -v uv &>/dev/null; then
+        warn "uv not found; run './install.sh brew' first"
+        return
+    fi
+    uv tool install pipenv || uv tool upgrade pipenv
+    success "python done"
+}
+
+install_claude() {
+    info "── claude ──"
+    if command -v claude &>/dev/null || [[ -x "$HOME/.local/bin/claude" ]]; then
+        info "Claude Code already installed"
+    else
+        curl -fsSL https://claude.ai/install.sh | bash
+    fi
+    success "claude done"
+}
+
+install_macos() {
+    info "── macos ──"
+    "$DOTFILES/macos.sh"
+    success "macos done"
 }
 
 # ── Module Runner ────────────────────────────────────────────────────
 
 run_module() {
     local mod="$1"
-    case "$mod" in
-        tmux)   install_tmux   ;;
-        nvim)   install_nvim   ;;
-        zsh)    install_zsh    ;;
-        kitty)  install_kitty  ;;
-        python) install_python ;;
-        node)   install_node   ;;
-        core)   install_core   ;;
-        fonts)  install_fonts  ;;
-        *)
-            error "Unknown module: $mod"
-            echo "Run './install.sh --list' to see available modules."
-            return 1
-            ;;
-    esac
+    if [[ " ${MODULES[*]} " != *" $mod "* ]]; then
+        error "Unknown module: $mod"
+        echo "Run './install.sh --list' to see available modules."
+        return 1
+    fi
+    "install_$mod"
 }
 
 list_modules() {
-    echo "Available modules:"
-    echo ""
-    echo "  tmux    - tmux + TPM + config"
-    echo "  nvim    - Neovim + config symlinks"
-    echo "  zsh     - Zsh plugins + zshrc + p10k"
-    echo "  kitty   - Kitty terminal config"
-    echo "  python  - Python + pip + pipenv + pynvim"
-    echo "  node    - fnm (Node version manager)"
-    echo "  core    - ripgrep, fzf, bat, go, gcc, cmake, bazel, ag, shfmt, lazydocker"
-    echo "  fonts   - Nerd Fonts (macOS only)"
-    echo ""
-    echo "Usage:"
-    echo "  ./install.sh              # Install everything"
-    echo "  ./install.sh tmux nvim    # Install specific modules"
-    echo "  ./install.sh --list       # Show this help"
+    cat <<EOF
+Available modules (run in this order by default):
+
+  brew    - Homebrew + everything in Brewfile (CLI tools, apps, fonts)
+  zsh     - zshrc + p10k + ~/.zshrc.local
+  git     - gitconfig + ~/.gitconfig.local (email)
+  tmux    - tmux.conf + TPM + plugins
+  kitty   - kitty config + theme
+  nvim    - Neovim config + plugins (lazy-lock.json)
+  node    - Node LTS via fnm
+  python  - pipenv via uv
+  claude  - Claude Code CLI
+  macos   - macOS system defaults (macos.sh)
+
+Usage:
+  ./install.sh                  # Install everything
+  ./install.sh --extras         # Everything + Brewfile.extras (Slack, Zoom, AnyDesk, ...)
+  ./install.sh tmux nvim        # Specific modules only
+  ./install.sh --list           # Show this help
+EOF
 }
 
 # ── Main ─────────────────────────────────────────────────────────────
 
 main() {
+    local selected=()
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            -l|--list|-h|--help) list_modules; exit 0 ;;
+            -e|--extras)         EXTRAS=true ;;
+            *)                   selected+=("$arg") ;;
+        esac
+    done
+    if [[ ${#selected[@]} -eq 0 ]]; then
+        selected=("${MODULES[@]}")
+    fi
+
     echo -e "${BLUE}╔══════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║       Dotfiles Installer             ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════╝${NC}"
     echo ""
 
-    if [[ $# -eq 0 ]]; then
-        info "Installing all modules..."
-        echo ""
-        for mod in "${MODULES[@]}"; do
-            run_module "$mod"
-            echo ""
-        done
-    elif [[ "$1" == "--list" || "$1" == "-l" ]]; then
-        list_modules
-        exit 0
-    else
-        for mod in "$@"; do
-            run_module "$mod"
-            echo ""
-        done
+    if [[ "$(uname)" != "Darwin" ]]; then
+        warn "Only macOS is fully supported; casks and macos defaults will be skipped or fail"
     fi
 
-    success "All done!"
+    load_brew_env || true
+
+    local failed=()
+    local mod
+    for mod in "${selected[@]}"; do
+        # Keep going if one module fails so a single broken step doesn't block the rest.
+        # Not run as `if ! (...)`: errexit is ignored inside a condition.
+        local rc=0
+        set +e
+        ( set -e; run_module "$mod" )
+        rc=$?
+        set -e
+        if [[ $rc -ne 0 ]]; then
+            error "Module '$mod' failed"
+            failed+=("$mod")
+        fi
+        load_brew_env || true
+        echo ""
+    done
+
+    if [[ ${#failed[@]} -gt 0 ]]; then
+        error "Finished with failures in: ${failed[*]}"
+        exit 1
+    fi
+
+    success "All done! Open a new terminal (or run: exec zsh)."
+    if git -C "$DOTFILES" remote get-url origin 2>/dev/null | grep -q '^https://'; then
+        info "Once your SSH key is on GitHub: git -C $DOTFILES remote set-url origin git@github.com:JoanSernaLeiton/dotfiles.git"
+    fi
 }
 
 main "$@"

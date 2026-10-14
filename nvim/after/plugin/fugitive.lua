@@ -16,8 +16,9 @@ local function setup_fugitive_commands()
     { "<leader>gca", "<cmd>Git commit --amend<CR>", desc = "Amend Commit" },
     { "<leader>gcv", "<cmd>Git commit --verbose<CR>", desc = "Verbose Commit" },
 
-    -- Log commands
-    { "<leader>gl", "<cmd>Git log<CR>", desc = "View Log" },
+    -- Log commands (all under <leader>gl* to avoid a bare "gl" leaf, which
+    -- would be an ambiguous prefix of "glg"/"glp")
+    { "<leader>gls", "<cmd>Git log<CR>", desc = "View Log" },
     { "<leader>glp", "<cmd>Git log -p<CR>", desc = "Log with Patches" },
     { "<leader>glg", "<cmd>Git log --graph --oneline<CR>", desc = "Graph Log" },
 
@@ -29,8 +30,9 @@ local function setup_fugitive_commands()
     { "<leader>gP", "<cmd>Git push -u origin HEAD<CR>", desc = "Push Upstream" },
     { "<leader>gF", "<cmd>Git fetch<CR>", desc = "Fetch" },
 
-    -- Stash operations
-    { "<leader>gz", "<cmd>Git stash<CR>", desc = "Stash" },
+    -- Stash operations (all under <leader>gz* to avoid a bare "gz" leaf,
+    -- which would be an ambiguous prefix of "gza"/"gzl"/"gzp")
+    { "<leader>gzs", "<cmd>Git stash<CR>", desc = "Stash" },
     { "<leader>gzp", "<cmd>Git stash pop<CR>", desc = "Stash Pop" },
     { "<leader>gza", "<cmd>Git stash apply<CR>", desc = "Stash Apply" },
     { "<leader>gzl", "<cmd>Git stash list<CR>", desc = "Stash List" },

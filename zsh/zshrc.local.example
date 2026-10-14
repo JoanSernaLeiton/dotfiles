@@ -1,0 +1,5 @@
+# Copied to ~/.zshrc.local by install.sh if it doesn't exist.
+# Put machine-specific or private things here (work hosts, tunnels, tokens
+# pulled from a secret manager, ...). This file is never committed.
+
+# export AWS_PROFILE=default
