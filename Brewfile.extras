@@ -1,5 +1,5 @@
 # Optional apps (communication / remote access / extra browsers).
-# Installed only with `./install.sh --extras`.
+# Installed only with `./install.sh --extras` (macOS; Linux uses linux/flatpaks.extras.txt).
 
 cask "slack"
 cask "zoom"

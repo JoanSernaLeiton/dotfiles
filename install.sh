@@ -18,10 +18,52 @@ DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
 EXTRAS=false
 
+# ── OS Detection ─────────────────────────────────────────────────────
+# OS:     macos | linux
+# DISTRO: debian | fedora | arch (Linux only, from /etc/os-release ID / ID_LIKE)
+# IS_WSL: true when running inside Windows Subsystem for Linux (no GUI apps)
+OS=""
+DISTRO=""
+IS_WSL=false
+
+detect_os() {
+    case "$(uname -s)" in
+        Darwin) OS=macos ;;
+        Linux)
+            OS=linux
+            grep -qi microsoft /proc/version 2>/dev/null && IS_WSL=true
+            local id="" id_like=""
+            if [[ -r /etc/os-release ]]; then
+                id="$(. /etc/os-release && echo "${ID:-}")"
+                id_like="$(. /etc/os-release && echo "${ID_LIKE:-}")"
+            fi
+            case " $id $id_like " in
+                *" debian "*|*" ubuntu "*)        DISTRO=debian ;;
+                *" fedora "*|*" rhel "*)          DISTRO=fedora ;;
+                *" arch "*)                       DISTRO=arch ;;
+                *)
+                    error "Unsupported Linux distribution: ${id:-unknown} (supported: Debian/Ubuntu, Fedora, Arch)"
+                    exit 1
+                    ;;
+            esac
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            error "Native Windows isn't supported. Install WSL (wsl --install) and run this inside Ubuntu."
+            exit 1
+            ;;
+        *)
+            error "Unsupported OS: $(uname -s)"
+            exit 1
+            ;;
+    esac
+}
+
+has_gui() { [[ "$OS" == macos ]] || { [[ "$IS_WSL" == false ]] && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}${XDG_CURRENT_DESKTOP:-}" ]]; }; }
+
 # ── Helpers ──────────────────────────────────────────────────────────
 load_brew_env() {
     local b
-    for b in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
+    for b in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew "$HOME/.linuxbrew/bin/brew"; do
         if [[ -x "$b" ]]; then
             eval "$("$b" shellenv)"
             return 0
@@ -38,6 +80,27 @@ ensure_brew() {
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     load_brew_env
     success "Homebrew installed"
+}
+
+# Native package manager, one package at a time so a missing name doesn't
+# abort the whole batch (package names differ slightly between releases).
+pkg_install() {
+    local pkg
+    for pkg in "$@"; do
+        case "$DISTRO" in
+            debian) sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$pkg" >/dev/null ;;
+            fedora) sudo dnf install -y -q "$pkg" ;;
+            arch)   sudo pacman -S --needed --noconfirm "$pkg" ;;
+        esac || warn "Could not install package: $pkg"
+    done
+}
+
+pkg_refresh() {
+    case "$DISTRO" in
+        debian) sudo apt-get update -qq ;;
+        fedora) sudo dnf makecache -q ;;
+        arch)   sudo pacman -Sy --noconfirm ;;
+    esac
 }
 
 backup_if_exists() {
@@ -61,24 +124,160 @@ symlink() {
 prompt() {
     local question="$1" answer=""
     if [[ -r /dev/tty ]]; then
-        read -r -p "$question " answer </dev/tty || true
+        { read -r -p "$question " answer </dev/tty; } 2>/dev/null || true
     fi
     echo "$answer"
 }
 
+# Read a package list file, skipping comments and blank lines.
+read_list() { grep -vE '^\s*(#|$)' "$1"; }
+
 # ── Modules ──────────────────────────────────────────────────────────
 
-MODULES=(brew zsh git tmux kitty nvim node python claude macos)
+MODULES=(system brew apps zsh git tmux kitty nvim node python claude macos)
+
+install_system() {
+    info "── system ──"
+    if [[ "$OS" == macos ]]; then
+        if ! xcode-select -p &>/dev/null; then
+            info "Installing Xcode Command Line Tools (accept the dialog)..."
+            xcode-select --install || true
+            until xcode-select -p &>/dev/null; do sleep 5; done
+        fi
+        success "system done"
+        return
+    fi
+
+    pkg_refresh
+    # Build tools + what Homebrew on Linux needs, zsh, fonts tooling
+    case "$DISTRO" in
+        debian) pkg_install build-essential procps curl file git zsh unzip fontconfig sshpass ;;
+        fedora) pkg_install gcc gcc-c++ make procps-ng curl file git zsh unzip fontconfig sshpass ;;
+        arch)   pkg_install base-devel procps-ng curl file git zsh unzip fontconfig sshpass ;;
+    esac
+
+    if [[ "$IS_WSL" == true ]]; then
+        info "WSL: skipping Docker engine (use Docker Desktop's WSL integration) and desktop packages"
+        success "system done"
+        return
+    fi
+
+    # Docker engine (the Linux counterpart of OrbStack)
+    case "$DISTRO" in
+        debian) pkg_install docker.io docker-compose-v2 ;;
+        fedora) pkg_install moby-engine docker-compose ;;
+        arch)   pkg_install docker docker-compose ;;
+    esac
+    if command -v systemctl &>/dev/null; then
+        sudo systemctl enable --now docker || warn "Could not start docker service"
+    fi
+    if ! id -nG "$USER" | grep -qw docker; then
+        sudo usermod -aG docker "$USER" && info "Added $USER to the docker group (log out/in to apply)"
+    fi
+
+    # Desktop: terminal, clipboard, Flatpak
+    pkg_install kitty xclip wl-clipboard flatpak
+    success "system done"
+}
 
 install_brew() {
     info "── brew ──"
+    if [[ "$OS" == linux && "$(uname -m)" != x86_64 ]]; then
+        warn "Homebrew on Linux $(uname -m) has few prebuilt bottles; some formulas will compile from source (slow)"
+    fi
     ensure_brew
     brew update
+    # Brewfile wraps casks / mac-only formulas in `if OS.mac?`, so it works on both
     brew bundle --file="$DOTFILES/Brewfile" || warn "Some Brewfile entries failed (see above)"
-    if [[ "$EXTRAS" == true ]]; then
+    if [[ "$EXTRAS" == true && "$OS" == macos ]]; then
         brew bundle --file="$DOTFILES/Brewfile.extras" || warn "Some Brewfile.extras entries failed (see above)"
     fi
     success "brew done"
+}
+
+# GUI apps / fonts / cloud tools on Linux (on macOS these are casks in the Brewfile)
+install_apps() {
+    info "── apps ──"
+    if [[ "$OS" == macos ]]; then
+        info "macOS apps come from the Brewfile casks"
+        success "apps done"
+        return
+    fi
+
+    install_linux_fonts
+    install_gcloud
+    install_session_manager_plugin
+
+    if ! has_gui; then
+        info "No desktop session detected (or WSL); skipping Flatpak apps"
+        success "apps done"
+        return
+    fi
+    if ! command -v flatpak &>/dev/null; then
+        warn "flatpak not installed; run './install.sh system' first"
+        return
+    fi
+    flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    local lists=("$DOTFILES/linux/flatpaks.txt")
+    [[ "$EXTRAS" == true ]] && lists+=("$DOTFILES/linux/flatpaks.extras.txt")
+    local app
+    for app in $(cat "${lists[@]}" | grep -vE '^\s*(#|$)'); do
+        flatpak install --user -y --noninteractive flathub "$app" || warn "Could not install $app"
+    done
+    success "apps done"
+}
+
+install_linux_fonts() {
+    local dir="$HOME/.local/share/fonts/NerdFonts" font
+    mkdir -p "$dir"
+    for font in FiraCode JetBrainsMono Meslo; do
+        if ls "$dir" 2>/dev/null | grep -q "^$font"; then
+            continue
+        fi
+        info "Installing $font Nerd Font..."
+        local tmp
+        tmp="$(mktemp -d)"
+        if curl -fsSL -o "$tmp/$font.zip" "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/$font.zip"; then
+            unzip -qo "$tmp/$font.zip" -d "$tmp/$font"
+            # Files are named <Font>NerdFont-*.ttf, which the check above relies on
+            find "$tmp/$font" -name '*.ttf' -exec cp {} "$dir/" \;
+        else
+            warn "Could not download $font Nerd Font"
+        fi
+        rm -rf "$tmp"
+    done
+    command -v fc-cache &>/dev/null && fc-cache -f "$dir" >/dev/null
+}
+
+install_gcloud() {
+    if command -v gcloud &>/dev/null || [[ -d "$HOME/google-cloud-sdk" ]]; then
+        return
+    fi
+    info "Installing Google Cloud SDK into ~/google-cloud-sdk..."
+    curl -fsSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir="$HOME" >/dev/null \
+        || warn "gcloud install failed"
+}
+
+install_session_manager_plugin() {
+    command -v session-manager-plugin &>/dev/null && return
+    local base="https://s3.amazonaws.com/session-manager-downloads/plugin/latest" arch tmp
+    arch="$(uname -m)"
+    tmp="$(mktemp -d)"
+    case "$DISTRO" in
+        debian)
+            [[ "$arch" == x86_64 ]] && arch=ubuntu_64bit || arch=ubuntu_arm64
+            curl -fsSL -o "$tmp/smp.deb" "$base/$arch/session-manager-plugin.deb" \
+                && sudo dpkg -i "$tmp/smp.deb" >/dev/null || warn "session-manager-plugin install failed"
+            ;;
+        fedora)
+            [[ "$arch" == x86_64 ]] && arch=linux_64bit || arch=linux_arm64
+            sudo dnf install -y -q "$base/$arch/session-manager-plugin.rpm" || warn "session-manager-plugin install failed"
+            ;;
+        arch)
+            warn "session-manager-plugin: install from the AUR (aws-session-manager-plugin)"
+            ;;
+    esac
+    rm -rf "$tmp"
 }
 
 install_zsh() {
@@ -89,9 +288,16 @@ install_zsh() {
         cp "$DOTFILES/zsh/zshrc.local.example" "$HOME/.zshrc.local"
         success "Created ~/.zshrc.local (private, untracked)"
     fi
+    local f
+    for f in "$DOTFILES"/bin/*; do
+        symlink "$f" "$HOME/.local/bin/$(basename "$f")"
+    done
     if [[ "$(basename "${SHELL:-}")" != "zsh" ]]; then
-        info "Changing login shell to zsh..."
-        chsh -s "$(command -v zsh)" || warn "chsh failed; run: chsh -s $(command -v zsh)"
+        # Prefer the system zsh: it's the one listed in /etc/shells
+        local zsh_path
+        zsh_path="$(command -v /bin/zsh /usr/bin/zsh zsh 2>/dev/null | head -1)"
+        info "Changing login shell to $zsh_path..."
+        sudo chsh -s "$zsh_path" "$USER" || warn "chsh failed; run: chsh -s $zsh_path"
     fi
     success "zsh done"
 }
@@ -184,6 +390,10 @@ install_claude() {
 
 install_macos() {
     info "── macos ──"
+    if [[ "$OS" != macos ]]; then
+        info "Not macOS, skipping system defaults"
+        return
+    fi
     "$DOTFILES/macos.sh"
     success "macos done"
 }
@@ -202,10 +412,13 @@ run_module() {
 
 list_modules() {
     cat <<EOF
-Available modules (run in this order by default):
+Available modules (run in this order by default). The OS is detected
+automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
 
-  brew    - Homebrew + everything in Brewfile (CLI tools, apps, fonts)
-  zsh     - zshrc + p10k + ~/.zshrc.local
+  system  - macOS: Xcode CLT | Linux: build tools, zsh, Docker, kitty, clipboard, Flatpak (native pkg manager)
+  brew    - Homebrew (macOS & Linux) + Brewfile (CLI tools; casks/fonts on macOS)
+  apps    - Linux only: Flatpak apps, Nerd Fonts, gcloud, AWS session-manager-plugin
+  zsh     - zshrc + p10k + ~/.zshrc.local + bin/ helpers
   git     - gitconfig + ~/.gitconfig.local (email)
   tmux    - tmux.conf + TPM + plugins
   kitty   - kitty config + theme
@@ -213,11 +426,11 @@ Available modules (run in this order by default):
   node    - Node LTS via fnm
   python  - pipenv via uv
   claude  - Claude Code CLI
-  macos   - macOS system defaults (macos.sh)
+  macos   - macOS system defaults (macos.sh; skipped elsewhere)
 
 Usage:
   ./install.sh                  # Install everything
-  ./install.sh --extras         # Everything + Brewfile.extras (Slack, Zoom, AnyDesk, ...)
+  ./install.sh --extras         # Everything + extras (Slack, Zoom, AnyDesk, Chrome Dev, Firefox)
   ./install.sh tmux nvim        # Specific modules only
   ./install.sh --list           # Show this help
 EOF
@@ -239,13 +452,19 @@ main() {
         selected=("${MODULES[@]}")
     fi
 
+    detect_os
+
     echo -e "${BLUE}╔══════════════════════════════════════╗${NC}"
     echo -e "${BLUE}║       Dotfiles Installer             ║${NC}"
     echo -e "${BLUE}╚══════════════════════════════════════╝${NC}"
+    info "Detected: $OS${DISTRO:+ ($DISTRO)}$([[ $IS_WSL == true ]] && echo ' on WSL')"
     echo ""
 
-    if [[ "$(uname)" != "Darwin" ]]; then
-        warn "Only macOS is fully supported; casks and macos defaults will be skipped or fail"
+    # Ask for the sudo password once up front and keep it alive while we run
+    if [[ "$OS" == linux ]] || [[ " ${selected[*]} " == *" brew "* ]]; then
+        if sudo -v; then
+            while true; do sudo -n true; sleep 50; kill -0 "$$" 2>/dev/null || exit; done 2>/dev/null &
+        fi
     fi
 
     load_brew_env || true

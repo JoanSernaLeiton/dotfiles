@@ -1,0 +1,8 @@
+#!/bin/sh
+# Print the system clipboard on macOS, Wayland, X11 or WSL.
+if command -v pbpaste >/dev/null 2>&1; then exec pbpaste
+elif [ -n "$WAYLAND_DISPLAY" ] && command -v wl-paste >/dev/null 2>&1; then exec wl-paste --no-newline
+elif command -v xclip >/dev/null 2>&1; then exec xclip -selection clipboard -o
+elif command -v powershell.exe >/dev/null 2>&1; then powershell.exe -NoProfile -Command Get-Clipboard | tr -d '\r'
+else echo "clippaste: no clipboard tool found" >&2; exit 1
+fi

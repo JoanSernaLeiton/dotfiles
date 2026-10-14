@@ -1,0 +1,11 @@
+# Linux equivalents of the Brewfile casks, installed from Flathub.
+# Not available as Flatpak (installed another way or skipped on Linux):
+#   kitty (native package), OrbStack (→ native Docker), gcloud (official installer),
+#   session-manager-plugin (AWS .deb/.rpm), Cursor / Claude desktop / Rectangle /
+#   AWS VPN Client (no Flatpak; install manually if needed).
+com.jetbrains.WebStorm
+io.dbeaver.DBeaverCommunity
+com.getpostman.Postman
+com.bitwarden.desktop
+md.obsidian.Obsidian
+com.google.Chrome

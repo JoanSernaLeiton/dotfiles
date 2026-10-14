@@ -1,0 +1,6 @@
+# Linux equivalents of Brewfile.extras (installed with --extras).
+com.slack.Slack
+us.zoom.Zoom
+com.anydesk.Anydesk
+com.google.ChromeDev
+org.mozilla.firefox
