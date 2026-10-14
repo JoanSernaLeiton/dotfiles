@@ -41,6 +41,8 @@ unset _zcompdump
 
 # ── Aliases ──────────────────────────────────────────────────────────
 alias vim="nvim"
+# Claude Code in its own tmux window named after the project: ct [dir] [claude args]
+alias ct="claude-tmux new"
 
 # ── Tools ────────────────────────────────────────────────────────────
 (( $+commands[fzf] )) && source <(fzf --zsh)

@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+# Claude Code ⇄ tmux glue.
+#
+#   claude-tmux new [dir] [claude args...]  Open Claude in a new tmux window (or session) named after the project
+#   claude-tmux next                        Jump to the next pane where Claude needs you (then finished ones)
+#   claude-tmux hook                        Claude Code hook: reads the event JSON on stdin
+#
+# The hook stores each pane's state in the pane option @claude:
+#   working → Claude is busy      waiting → needs your input/permission      done → finished its turn
+# tmux.conf renders it in the window list and pane borders; a desktop notification is sent when the
+# pane isn't the one you're looking at, and clicking it jumps to that pane.
+
+set -uo pipefail
+
+TMUX_BIN="$(command -v tmux || echo tmux)"
+
+# ── hook ─────────────────────────────────────────────────────────────
+
+# True when the pane is on screen in a terminal that has focus.
+pane_visible() {
+    local pane="$1" info session
+    info="$("$TMUX_BIN" display -p -t "$pane" '#{pane_active}#{window_active} #{session_name}' 2>/dev/null)" || return 1
+    [[ "${info%% *}" == "11" ]] || return 1
+    session="${info#* }"
+    "$TMUX_BIN" list-clients -F '#{client_session} #{client_flags}' 2>/dev/null \
+        | grep -q "^$session .*focused"
+}
+
+# macOS bundle id of the terminal tmux runs in, so clicking a notification brings it forward
+terminal_app() {
+    [[ -n "${CLAUDE_NOTIFY_APP:-}" ]] && { echo "$CLAUDE_NOTIFY_APP"; return; }
+    case "$("$TMUX_BIN" show-environment -g TERM_PROGRAM 2>/dev/null | cut -d= -f2)" in
+        iTerm.app) echo com.googlecode.iterm2 ;;
+        kitty)     echo net.kovidgoyal.kitty ;;
+        ghostty)   echo com.mitchellh.ghostty ;;
+        WezTerm)   echo com.github.wez.wezterm ;;
+        *)         echo com.apple.Terminal ;;
+    esac
+}
+
+notify() {
+    local title="$1" subtitle="$2" body="$3" pane="$4"
+    local focus_cmd="$TMUX_BIN select-window -t '$pane' \; select-pane -t '$pane' \; switch-client -t '$pane'"
+    case "$(uname -s)" in
+        Darwin)
+            # terminal-notifier: clicking brings the terminal forward and jumps to the pane. It needs
+            # notification permission (System Settings → Notifications); osascript is the fallback.
+            { command -v terminal-notifier &>/dev/null \
+                && terminal-notifier -title "$title" -subtitle "$subtitle" -message "$body" \
+                       -group "claude-$pane" -activate "$(terminal_app)" -execute "$focus_cmd" -sound default \
+                || osascript - "$title" "$subtitle" "$body" <<'OSA'
+on run argv
+    display notification (item 3 of argv) with title (item 1 of argv) subtitle (item 2 of argv) sound name "Glass"
+end run
+OSA
+            } </dev/null &>/dev/null &
+            ;;
+        Linux)
+            if command -v notify-send &>/dev/null; then
+                # -A waits for a click; run detached so the hook returns immediately
+                ( action="$(notify-send -a "Claude Code" -A focus=Focus "$title" "$subtitle"$'\n'"$body" 2>/dev/null)"
+                  [[ "$action" == focus ]] && eval "$focus_cmd" ) </dev/null &>/dev/null &
+            fi
+            ;;
+    esac
+}
+
+# One line describing a tool call: "Run: git push", "Edit: install.sh", "WebFetch: https://…"
+TOOL_SUMMARY='
+    .tool_input as $i
+    | ($i.command // $i.file_path // $i.notebook_path // $i.url // $i.pattern // $i.query // $i.description // "") as $arg
+    | ({Bash: "Run", Edit: "Edit", MultiEdit: "Edit", Write: "Write", NotebookEdit: "Edit", Read: "Read"}[.tool_name] // .tool_name) as $verb
+    | if ($arg | test("^/")) and .tool_name != "Bash" then "\($verb): \($arg | split("/") | last)"
+      else "\($verb): \($arg)" end
+    | gsub("\\s+"; " ")'
+
+# Plain text, one paragraph, no markdown noise
+clean() { sed -E 's/\*\*|__|`|^#+ //g' | tr -s '[:space:]' ' ' | cut -c1-"${1:-180}"; }
+
+cmd_hook() {
+    command -v jq &>/dev/null || exit 0
+    local input pane event ntype cwd project branch state="" title="" body="" where
+    input="$(cat)"
+    pane="${TMUX_PANE:-}"
+    [[ -n "$pane" && -n "${TMUX:-}" ]] || exit 0   # not running inside tmux: nothing to do
+
+    IFS=$'\t' read -r event ntype cwd < <(jq -r '[.hook_event_name, .notification_type // "", .cwd // ""] | @tsv' <<<"$input")
+    case "$event" in
+        PreToolUse)
+            # Remember what Claude is about to do, so a permission prompt can say what it's for
+            "$TMUX_BIN" set -p -t "$pane" @claude_tool "$(jq -r "$TOOL_SUMMARY" <<<"$input" | cut -c1-200)" 2>/dev/null
+            exit 0
+            ;;
+        UserPromptSubmit|PostToolUse) state=working ;;
+        Notification)
+            state=waiting
+            case "$ntype" in
+                auth_success) exit 0 ;;
+                permission_prompt)
+                    title="🔐 %s needs permission"
+                    body="$("$TMUX_BIN" display -p -t "$pane" '#{@claude_tool}' 2>/dev/null)"
+                    ;;
+                elicitation_dialog) title="❓ %s has a question" ;;
+                idle_prompt)        title="💬 %s is waiting for you" ;;
+                *)                  title="🔔 %s needs you" ;;
+            esac
+            [[ -n "$body" ]] || body="$(jq -r '.message // ""' <<<"$input" | clean)"
+            ;;
+        Stop)
+            state=done
+            title="✅ %s is done"
+            body="$(jq -r '.last_assistant_message // ""' <<<"$input" | clean)"
+            [[ -n "$body" ]] || body="Ready for your next prompt"
+            ;;
+        SessionEnd)
+            "$TMUX_BIN" set -p -t "$pane" -u @claude \; set -p -t "$pane" -u @claude_tool 2>/dev/null
+            exit 0
+            ;;
+        *) exit 0 ;;
+    esac
+
+    # PostToolUse fires a lot; skip the tmux call when nothing changes
+    [[ "$state" == working && "$("$TMUX_BIN" display -p -t "$pane" '#{@claude}' 2>/dev/null)" == working ]] && exit 0
+    "$TMUX_BIN" set -p -t "$pane" @claude "$state" 2>/dev/null
+
+    [[ -n "$title" ]] || exit 0
+    pane_visible "$pane" && exit 0
+
+    # Project = repo root name (or folder), plus branch: "dotfiles", "main"
+    project="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || echo "$cwd")"
+    project="$(basename "$project")"
+    branch="$(git -C "$cwd" branch --show-current 2>/dev/null)"
+    # Where to find it: "window 2 (dotfiles)"; session shown only when it has a real name, not 0/1/2
+    where="$("$TMUX_BIN" display -p -t "$pane" '#{?#{m/r:^[0-9]+$,#S},,#S › }window #I (#W)' 2>/dev/null)"
+    # shellcheck disable=SC2059
+    notify "$(printf "$title" "$project")" "${branch:+$branch · }$where" "$body" "$pane"
+    exit 0
+}
+
+# ── next ─────────────────────────────────────────────────────────────
+
+cmd_next() {
+    local target="" want
+    for want in waiting done; do
+        target="$("$TMUX_BIN" list-panes -a -F "#{?#{==:#{@claude},$want},#{pane_id},}" | grep -m1 . || true)"
+        [[ -n "$target" ]] && break
+    done
+    if [[ -z "$target" ]]; then
+        "$TMUX_BIN" display-message "No Claude session needs you"
+        return
+    fi
+    "$TMUX_BIN" select-window -t "$target" \; select-pane -t "$target"
+    "$TMUX_BIN" switch-client -t "$target" 2>/dev/null || true
+}
+
+# ── new ──────────────────────────────────────────────────────────────
+
+cmd_new() {
+    local dir="${1:-$PWD}"
+    [[ $# -gt 0 ]] && shift
+    dir="$(cd "$dir" && pwd)" || exit 1
+    local name launch
+    name="$(basename "$dir" | tr '.:' '__')"
+    launch="claude${*:+ $(printf '%q ' "$@")}"
+    if [[ -n "${TMUX:-}" ]]; then
+        local pane
+        pane="$("$TMUX_BIN" new-window -P -F '#{pane_id}' -c "$dir" -n "$name")"
+        "$TMUX_BIN" send-keys -t "$pane" "$launch" Enter
+    elif "$TMUX_BIN" has-session -t "=$name" 2>/dev/null; then
+        exec "$TMUX_BIN" attach -t "=$name"
+    else
+        "$TMUX_BIN" new-session -d -s "$name" -c "$dir"
+        "$TMUX_BIN" send-keys -t "=$name:" "$launch" Enter
+        exec "$TMUX_BIN" attach -t "=$name"
+    fi
+}
+
+case "${1:-}" in
+    hook) cmd_hook ;;
+    next) cmd_next ;;
+    new)  shift; cmd_new "$@" ;;
+    *)    sed -n '2,7s/^# \{0,1\}//p' "$0"; exit 1 ;;
+esac

@@ -151,9 +151,9 @@ install_system() {
     pkg_refresh
     # Build tools + what Homebrew on Linux needs, zsh, fonts tooling
     case "$DISTRO" in
-        debian) pkg_install build-essential procps curl file git zsh unzip fontconfig sshpass ;;
-        fedora) pkg_install gcc gcc-c++ make procps-ng curl file git zsh unzip fontconfig sshpass ;;
-        arch)   pkg_install base-devel procps-ng curl file git zsh unzip fontconfig sshpass ;;
+        debian) pkg_install build-essential procps curl file git zsh unzip fontconfig sshpass jq libnotify-bin ;;
+        fedora) pkg_install gcc gcc-c++ make procps-ng curl file git zsh unzip fontconfig sshpass jq libnotify ;;
+        arch)   pkg_install base-devel procps-ng curl file git zsh unzip fontconfig sshpass jq libnotify ;;
     esac
 
     if [[ "$IS_WSL" == true ]]; then
@@ -385,7 +385,33 @@ install_claude() {
     else
         curl -fsSL https://claude.ai/install.sh | bash
     fi
+    configure_claude_settings
     success "claude done"
+}
+
+# Merge the tmux integration into ~/.claude/settings.json without touching the rest of
+# the file (it holds machine/work-specific settings, so it isn't tracked here).
+configure_claude_settings() {
+    if ! command -v jq &>/dev/null; then
+        warn "jq not found; run './install.sh brew' first to wire Claude Code into tmux"
+        return
+    fi
+    local settings="$HOME/.claude/settings.json" tmp
+    mkdir -p "$HOME/.claude"
+    [[ -s "$settings" ]] || echo '{}' > "$settings"
+    tmp="$(mktemp)"
+    jq --arg cmd '$HOME/.local/bin/claude-tmux hook' '
+        # Drop our previous entries so re-running is idempotent, then add them back
+        def ours: .hooks | any(.command == $cmd);
+        .hooks |= (. // {})
+        | reduce ("PreToolUse", "UserPromptSubmit", "PostToolUse", "Notification", "Stop", "SessionEnd") as $ev (.;
+            .hooks[$ev] = ([(.hooks[$ev] // [])[] | select(ours | not)]
+                           + [{hooks: [{type: "command", command: $cmd, timeout: 10}]}]))
+        # Agent teams: one tmux pane per teammate when running inside tmux
+        | .env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
+        | .teammateMode = "auto"
+    ' "$settings" > "$tmp" && mv "$tmp" "$settings"
+    success "Claude Code hooks → tmux (~/.claude/settings.json)"
 }
 
 install_macos() {
@@ -425,7 +451,7 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
   nvim    - Neovim config + plugins (lazy-lock.json)
   node    - Node LTS via fnm
   python  - pipenv via uv
-  claude  - Claude Code CLI
+  claude  - Claude Code CLI + tmux hooks (state icons, notifications, agent-team panes)
   macos   - macOS system defaults (macos.sh; skipped elsewhere)
 
 Usage:

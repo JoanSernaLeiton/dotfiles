@@ -19,6 +19,7 @@ brew "fd"
 brew "ripgrep"
 brew "the_silver_searcher"
 brew "wget"
+brew "jq"
 brew "yq"
 brew "rtk"
 
@@ -64,6 +65,7 @@ if OS.mac?
   brew "hudochenkov/sshpass/sshpass"
   brew "reattach-to-user-namespace"
   brew "duti"
+  brew "terminal-notifier"   # clickable Claude Code notifications (bin/claude-tmux)
 
   # ── Apps ─────────────────────────────────────────────────────────────
   cask "kitty"
