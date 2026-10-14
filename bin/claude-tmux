@@ -1,35 +1,60 @@
 #!/usr/bin/env bash
 # Claude Code ⇄ tmux glue.
 #
-#   claude-tmux new [dir] [claude args...]  Open Claude in a new tmux window (or session) named after the project
-#   claude-tmux next                        Jump to the next pane where Claude needs you (then finished ones)
+#   claude-tmux new [-w name] [dir] [args]  Open Claude in a new window named after the project (-w: in a git worktree)
+#   claude-tmux project [client]            Fuzzy-pick a project → session named after it, with claude + nvim windows
+#   claude-tmux next                        Jump to the pane where Claude needs you (then finished ones)
+#   claude-tmux dashboard [client]          Every Claude pane with state, age and last message; Enter jumps
+#   claude-tmux send [pane]                 Paste the last lines of a pane into the nearest Claude prompt
+#   claude-tmux scratch                     Persistent scratch Claude session (shown in a popup)
+#   claude-tmux team [pane]                 Move the other panes of this window (agent teammates) to their own window
+#   claude-tmux dnd                         Toggle desktop notifications (icons in tmux keep working)
+#   claude-tmux resume                      Restart the Claude conversation this pane had (used by tmux-resurrect)
+#   claude-tmux statusline                  Claude Code statusLine command (model · context · cost)
 #   claude-tmux hook                        Claude Code hook: reads the event JSON on stdin
 #
-# The hook stores each pane's state in the pane option @claude:
-#   working → Claude is busy      waiting → needs your input/permission      done → finished its turn
-# tmux.conf renders it in the window list and pane borders; a desktop notification is sent when the
-# pane isn't the one you're looking at, and clicking it jumps to that pane.
+# Pane options written by the hook and read by tmux.conf:
+#   @claude        working | waiting | done      @claude_since  epoch of the last state change
+#   @claude_msg    what it's waiting for / its last message
+#   @claude_tool   the tool call it's about to make    @claude_ctx   "43% · $1.20" from the status line
+# Global option @claude_dnd = on mutes desktop notifications.
 
 set -uo pipefail
 
 TMUX_BIN="$(command -v tmux || echo tmux)"
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/claude-tmux"
+REMIND_AFTER="${CLAUDE_REMIND_AFTER:-300}"   # seconds before re-notifying about a pane that still waits
+PROJECT_ROOTS="${CLAUDE_TMUX_PROJECT_ROOTS:-$HOME/code $HOME/projects $HOME/dotfiles}"
 
-# ── hook ─────────────────────────────────────────────────────────────
+t() { "$TMUX_BIN" "$@"; }
+
+# Jump the given client (or the current one) to a pane, across sessions
+focus_pane() {
+    local pane="$1" client="${2:-}"
+    t select-window -t "$pane" \; select-pane -t "$pane"
+    t switch-client ${client:+-c "$client"} -t "$pane" 2>/dev/null || true
+}
+
+session_name_for() { basename "$1" | tr '.: ' '___'; }
+
+# ── notifications ────────────────────────────────────────────────────
 
 # True when the pane is on screen in a terminal that has focus.
 pane_visible() {
     local pane="$1" info session
-    info="$("$TMUX_BIN" display -p -t "$pane" '#{pane_active}#{window_active} #{session_name}' 2>/dev/null)" || return 1
+    info="$(t display -p -t "$pane" '#{pane_active}#{window_active} #{session_name}' 2>/dev/null)" || return 1
     [[ "${info%% *}" == "11" ]] || return 1
     session="${info#* }"
-    "$TMUX_BIN" list-clients -F '#{client_session} #{client_flags}' 2>/dev/null \
-        | grep -q "^$session .*focused"
+    t list-clients -F '#{client_session} #{client_flags}' 2>/dev/null | grep -q "^$session .*focused"
 }
+
+dnd_on() { [[ "$(t show -gv @claude_dnd 2>/dev/null)" == on ]]; }
 
 # macOS bundle id of the terminal tmux runs in, so clicking a notification brings it forward
 terminal_app() {
     [[ -n "${CLAUDE_NOTIFY_APP:-}" ]] && { echo "$CLAUDE_NOTIFY_APP"; return; }
-    case "$("$TMUX_BIN" show-environment -g TERM_PROGRAM 2>/dev/null | cut -d= -f2)" in
+    case "$(t show-environment -g TERM_PROGRAM 2>/dev/null | cut -d= -f2)" in
         iTerm.app) echo com.googlecode.iterm2 ;;
         kitty)     echo net.kovidgoyal.kitty ;;
         ghostty)   echo com.mitchellh.ghostty ;;
@@ -65,6 +90,8 @@ OSA
     esac
 }
 
+# ── hook ─────────────────────────────────────────────────────────────
+
 # One line describing a tool call: "Run: git push", "Edit: install.sh", "WebFetch: https://…"
 TOOL_SUMMARY='
     .tool_input as $i
@@ -77,28 +104,48 @@ TOOL_SUMMARY='
 # Plain text, one paragraph, no markdown noise
 clean() { sed -E 's/\*\*|__|`|^#+ //g' | tr -s '[:space:]' ' ' | cut -c1-"${1:-180}"; }
 
+# Remember which conversation runs in this pane, keyed by its tmux position, so
+# tmux-resurrect can bring the same conversation back after a reboot.
+save_conversation() {
+    local pane="$1" sid="$2" key
+    [[ -n "$sid" ]] || return 0
+    key="$(t display -p -t "$pane" '#S:#I.#P' 2>/dev/null | tr '/' '_')" || return 0
+    mkdir -p "$STATE_DIR"
+    printf '%s\n' "$sid" > "$STATE_DIR/$key"
+}
+
 cmd_hook() {
     command -v jq &>/dev/null || exit 0
-    local input pane event ntype cwd project branch state="" title="" body="" where
+    local input pane event ntype cwd sid project branch state="" title="" body="" where
     input="$(cat)"
     pane="${TMUX_PANE:-}"
     [[ -n "$pane" && -n "${TMUX:-}" ]] || exit 0   # not running inside tmux: nothing to do
 
-    IFS=$'\t' read -r event ntype cwd < <(jq -r '[.hook_event_name, .notification_type // "", .cwd // ""] | @tsv' <<<"$input")
+    # \x1f separator: with tabs, `read` would merge empty fields and shift the rest
+    IFS=$'\x1f' read -r event ntype cwd sid < <(jq -r '[.hook_event_name, .notification_type // "", .cwd // "", .session_id // ""] | join("\u001f")' <<<"$input")
     case "$event" in
-        PreToolUse)
-            # Remember what Claude is about to do, so a permission prompt can say what it's for
-            "$TMUX_BIN" set -p -t "$pane" @claude_tool "$(jq -r "$TOOL_SUMMARY" <<<"$input" | cut -c1-200)" 2>/dev/null
+        SessionStart)
+            t set -p -t "$pane" @claude_sid "$sid" 2>/dev/null
+            save_conversation "$pane" "$sid"
             exit 0
             ;;
-        UserPromptSubmit|PostToolUse) state=working ;;
+        PreToolUse)
+            # Remember what Claude is about to do, so a permission prompt can say what it's for
+            t set -p -t "$pane" @claude_tool "$(jq -r "$TOOL_SUMMARY" <<<"$input" | cut -c1-200)" 2>/dev/null
+            exit 0
+            ;;
+        UserPromptSubmit)
+            state=working
+            save_conversation "$pane" "$sid"
+            ;;
+        PostToolUse) state=working ;;
         Notification)
             state=waiting
             case "$ntype" in
                 auth_success) exit 0 ;;
                 permission_prompt)
                     title="🔐 %s needs permission"
-                    body="$("$TMUX_BIN" display -p -t "$pane" '#{@claude_tool}' 2>/dev/null)"
+                    body="$(t display -p -t "$pane" '#{@claude_tool}' 2>/dev/null)"
                     ;;
                 elicitation_dialog) title="❓ %s has a question" ;;
                 idle_prompt)        title="💬 %s is waiting for you" ;;
@@ -113,71 +160,287 @@ cmd_hook() {
             [[ -n "$body" ]] || body="Ready for your next prompt"
             ;;
         SessionEnd)
-            "$TMUX_BIN" set -p -t "$pane" -u @claude \; set -p -t "$pane" -u @claude_tool 2>/dev/null
+            t set -p -t "$pane" -u @claude \; set -p -t "$pane" -u @claude_tool \; set -p -t "$pane" -u @claude_msg \
+              \; set -p -t "$pane" -u @claude_since \; set -p -t "$pane" -u @claude_sid \; set -p -t "$pane" -u @claude_ctx 2>/dev/null
             exit 0
             ;;
         *) exit 0 ;;
     esac
 
-    # PostToolUse fires a lot; skip the tmux call when nothing changes
-    [[ "$state" == working && "$("$TMUX_BIN" display -p -t "$pane" '#{@claude}' 2>/dev/null)" == working ]] && exit 0
-    "$TMUX_BIN" set -p -t "$pane" @claude "$state" 2>/dev/null
+    # PostToolUse fires a lot; skip the tmux calls when nothing changes
+    [[ "$state" == working && "$(t display -p -t "$pane" '#{@claude}' 2>/dev/null)" == working ]] && exit 0
+    local now
+    now="$(date +%s)"
+    t set -p -t "$pane" @claude "$state" \; set -p -t "$pane" @claude_since "$now" \
+      \; set -p -t "$pane" @claude_msg "$body" \; set -p -t "$pane" @claude_sid "$sid" 2>/dev/null
 
     [[ -n "$title" ]] || exit 0
-    pane_visible "$pane" && exit 0
 
     # Project = repo root name (or folder), plus branch: "dotfiles", "main"
     project="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || echo "$cwd")"
     project="$(basename "$project")"
     branch="$(git -C "$cwd" branch --show-current 2>/dev/null)"
     # Where to find it: "window 2 (dotfiles)"; session shown only when it has a real name, not 0/1/2
-    where="$("$TMUX_BIN" display -p -t "$pane" '#{?#{m/r:^[0-9]+$,#S},,#S › }window #I (#W)' 2>/dev/null)"
+    where="$(t display -p -t "$pane" '#{?#{m/r:^[0-9]+$,#S},,#S › }window #I (#W)' 2>/dev/null)"
     # shellcheck disable=SC2059
-    notify "$(printf "$title" "$project")" "${branch:+$branch · }$where" "$body" "$pane"
+    title="$(printf "$title" "$project")"
+
+    if ! dnd_on && ! pane_visible "$pane"; then
+        notify "$title" "${branch:+$branch · }$where" "$body" "$pane"
+    fi
+    if [[ "$state" == waiting && "$REMIND_AFTER" -gt 0 ]]; then
+        # Detached, so Claude doesn't wait for it
+        nohup "$SELF" remind "$pane" "$now" "$project" "${branch:+$branch · }$where" "$body" </dev/null &>/dev/null &
+    fi
     exit 0
 }
 
-# ── next ─────────────────────────────────────────────────────────────
+# Re-notify if the pane is still waiting on the same request after REMIND_AFTER seconds
+cmd_remind() {
+    local pane="$1" since="$2" project="$3" subtitle="$4" body="$5"
+    sleep "$REMIND_AFTER"
+    [[ "$(t display -p -t "$pane" '#{@claude}|#{@claude_since}' 2>/dev/null)" == "waiting|$since" ]] || exit 0
+    dnd_on && exit 0
+    pane_visible "$pane" && exit 0
+    notify "⏰ $project still needs you ($(human_age "$REMIND_AFTER"))" "$subtitle" "$body" "$pane"
+    wait
+}
+
+# ── navigation ───────────────────────────────────────────────────────
 
 cmd_next() {
     local target="" want
     for want in waiting done; do
-        target="$("$TMUX_BIN" list-panes -a -F "#{?#{==:#{@claude},$want},#{pane_id},}" | grep -m1 . || true)"
+        target="$(t list-panes -a -F "#{?#{==:#{@claude},$want},#{pane_id},}" | grep -m1 . || true)"
         [[ -n "$target" ]] && break
     done
     if [[ -z "$target" ]]; then
-        "$TMUX_BIN" display-message "No Claude session needs you"
+        t display-message "No Claude session needs you"
         return
     fi
-    "$TMUX_BIN" select-window -t "$target" \; select-pane -t "$target"
-    "$TMUX_BIN" switch-client -t "$target" 2>/dev/null || true
+    focus_pane "$target"
 }
 
-# ── new ──────────────────────────────────────────────────────────────
+human_age() {
+    local s="$1"
+    if   (( s < 60 ));   then echo "${s}s"
+    elif (( s < 3600 )); then echo "$((s / 60))m"
+    else                      echo "$((s / 3600))h$(( (s % 3600) / 60 ))m"
+    fi
+}
+
+# Every pane that has run Claude, most urgent first. Tab separated: pane_id, then display columns.
+dashboard_rows() {
+    local now id state since loc proj msg icon rank age
+    now="$(date +%s)"
+    t list-panes -a -F $'#{pane_id}\x1f#{@claude}\x1f#{@claude_since}\x1f#S:#I\x1f#{b:pane_current_path}\x1f#{@claude_msg}\x1f#{@claude_sid}' |
+    while IFS=$'\x1f' read -r id state since loc proj msg sid; do
+        [[ -n "$state$sid" ]] || continue
+        case "$state" in
+            waiting) icon="● waiting"; rank=1 ;;
+            done)    icon="✓ done   "; rank=2 ;;
+            working) icon="… working"; rank=3 ;;
+            *)       icon="  idle   "; rank=4 ;;
+        esac
+        age=""; [[ -n "$since" ]] && age="$(human_age $((now - since)))"
+        printf '%s\t%s\t%s\t%-6s\t%-10s\t%-18s\t%s\n' "$rank" "$id" "$icon" "$age" "$loc" "$proj" "$msg"
+    done | sort -t$'\t' -k1,1n | cut -f2-
+}
+
+cmd_dashboard() {
+    local client="${1:-}" rows pick
+    rows="$(dashboard_rows)"
+    if [[ -z "$rows" ]]; then
+        echo "No Claude sessions running."; sleep 1; return
+    fi
+    pick="$(fzf --delimiter=$'\t' --with-nth=2.. --ansi --reverse --no-sort \
+        --header='Enter: jump · Esc: close' --prompt='Claude › ' \
+        --preview="$TMUX_BIN capture-pane -ep -t {1} | grep -v '^\s*\$' | tail -n \$FZF_PREVIEW_LINES" \
+        --preview-window='down,60%,border-top' <<<"$rows")" || return 0
+    focus_pane "${pick%%$'\t'*}" "$client"
+}
+
+# ── sessions & windows ───────────────────────────────────────────────
 
 cmd_new() {
-    local dir="${1:-$PWD}"
-    [[ $# -gt 0 ]] && shift
-    dir="$(cd "$dir" && pwd)" || exit 1
+    local worktree=""
+    if [[ "${1:-}" == -w ]]; then
+        worktree="${2:?usage: claude-tmux new -w <name> [dir]}"
+        shift 2
+    fi
+    # Optional directory first; anything else is passed through to claude
+    local dir="$PWD"
+    if [[ $# -gt 0 && -d "$1" ]]; then
+        dir="$(cd "$1" && pwd)"
+        shift
+    fi
     local name launch
-    name="$(basename "$dir" | tr '.:' '__')"
-    launch="claude${*:+ $(printf '%q ' "$@")}"
+    name="$(session_name_for "$dir")${worktree:+-$worktree}"
+    # Claude creates the worktree and its branch itself (claude --worktree)
+    launch="claude${worktree:+ --worktree $(printf '%q' "$worktree")}${*:+ $(printf '%q ' "$@")}"
     if [[ -n "${TMUX:-}" ]]; then
         local pane
-        pane="$("$TMUX_BIN" new-window -P -F '#{pane_id}' -c "$dir" -n "$name")"
-        "$TMUX_BIN" send-keys -t "$pane" "$launch" Enter
-    elif "$TMUX_BIN" has-session -t "=$name" 2>/dev/null; then
+        pane="$(t new-window -P -F '#{pane_id}' -c "$dir" -n "$name")"
+        t send-keys -t "$pane" "$launch" Enter
+    elif t has-session -t "=$name" 2>/dev/null; then
         exec "$TMUX_BIN" attach -t "=$name"
     else
-        "$TMUX_BIN" new-session -d -s "$name" -c "$dir"
-        "$TMUX_BIN" send-keys -t "=$name:" "$launch" Enter
+        t new-session -d -s "$name" -c "$dir"
+        t send-keys -t "=$name:" "$launch" Enter
         exec "$TMUX_BIN" attach -t "=$name"
+    fi
+}
+
+# Open (or switch to) a session for a project: window "claude" running Claude, window "nvim"
+open_project() {
+    local dir="$1" client="${2:-}" name
+    name="$(session_name_for "$dir")"
+    if ! t has-session -t "=$name" 2>/dev/null; then
+        t new-session -d -s "$name" -c "$dir" -n claude
+        t send-keys -t "=$name:claude" claude Enter
+        t new-window -d -t "=$name:" -c "$dir" -n nvim
+        t send-keys -t "=$name:nvim" nvim Enter
+    fi
+    if [[ -n "$client" || -n "${TMUX:-}" ]]; then
+        t switch-client ${client:+-c "$client"} -t "=$name"
+    else
+        exec "$TMUX_BIN" attach -t "=$name"
+    fi
+}
+
+project_candidates() {
+    {
+        # Open sessions first, then frecent dirs, then git repos under the project roots
+        t list-sessions -F '#{session_path}' 2>/dev/null
+        command -v zoxide &>/dev/null && zoxide query -l 2>/dev/null | head -200
+        local root
+        for root in $PROJECT_ROOTS; do
+            [[ -d "$root" ]] || continue
+            [[ -d "$root/.git" ]] && echo "$root"
+            find "$root" -mindepth 2 -maxdepth 4 -name .git -prune 2>/dev/null | sed 's|/\.git$||'
+        done
+    } | awk '!seen[$0]++' | grep -v "^$HOME\$" | sed "s|^$HOME|~|"
+}
+
+cmd_project() {
+    local client="${1:-}" pick
+    pick="$(project_candidates | fzf --reverse --prompt='Project › ' \
+        --header='Enter: open/switch session (claude + nvim)' \
+        --preview='ls -A $(eval echo {}) | head -40')"
+    # Judge by the selection, not the exit code: find may get SIGPIPE when fzf exits early
+    [[ -n "$pick" ]] || return 0
+    open_project "${pick/#\~/$HOME}" "$client"
+}
+
+# Persistent scratch Claude, attached inside a tmux popup (prefix ? toggles it)
+cmd_scratch() {
+    if ! t has-session -t =scratch 2>/dev/null; then
+        t new-session -d -s scratch -c "$PWD" claude
+        t set -t =scratch status off
+    fi
+    TMUX='' exec "$TMUX_BIN" attach -t =scratch
+}
+
+# Agent teams split the lead's window; move every other pane into a "<window>-team" window
+cmd_team() {
+    local lead="${1:-${TMUX_PANE:-}}" win panes first p
+    win="$(t display -p -t "$lead" '#W')"
+    panes="$(t list-panes -t "$lead" -F '#{pane_id}' | grep -vx "$lead")"
+    if [[ -z "$panes" ]]; then
+        t display-message "No other panes in this window"
+        return
+    fi
+    first="$(head -1 <<<"$panes")"
+    t break-pane -d -s "$first" -n "$win-team"
+    for p in $(tail -n +2 <<<"$panes"); do
+        t join-pane -d -s "$p" -t "$first"
+    done
+    t select-layout -t "$first" tiled
+    t display-message "Teammates moved to window '$win-team'"
+}
+
+cmd_dnd() {
+    if dnd_on; then
+        t set -gu @claude_dnd
+        t display-message "Claude notifications: ON"
+    else
+        t set -g @claude_dnd on
+        t display-message "Claude notifications: OFF (icons in tmux still update)"
+    fi
+}
+
+# ── context ──────────────────────────────────────────────────────────
+
+# Paste the last lines of a pane (default: the current one) into the nearest Claude prompt
+cmd_send() {
+    local src="${1:-$(t display -p '#{pane_id}')}" lines="${CLAUDE_SEND_LINES:-60}"
+    local target="" text cmd
+    if [[ -n "$(t display -p -t "$src" '#{@claude}#{@claude_sid}')" ]]; then
+        t display-message "This is a Claude pane; press it from the pane with the output"
+        return
+    fi
+    # Nearest Claude pane: same window, then same session, then anywhere
+    local scope
+    for scope in "-t $src" "-s -t $src" "-a"; do
+        # shellcheck disable=SC2086
+        target="$(t list-panes $scope -F '#{?#{||:#{@claude},#{@claude_sid}},#{pane_id},}' | grep -m1 . || true)"
+        [[ -n "$target" ]] && break
+    done
+    if [[ -z "$target" ]]; then
+        t display-message "No Claude pane found (start one with prefix C)"
+        return
+    fi
+    cmd="$(t display -p -t "$src" '#{pane_current_command} in #{pane_current_path}')"
+    # Trim trailing blank lines so the paste ends at the last real output
+    text="$(t capture-pane -p -J -S "-$lines" -t "$src" | sed -e :a -e '/^[[:space:]]*$/{$d;N;ba' -e '}')"
+    printf 'Output from %s:\n```\n%s\n```\n' "$cmd" "$text" | t load-buffer -b claude-send -
+    t paste-buffer -p -d -b claude-send -t "$target"
+    focus_pane "$target"
+}
+
+# Claude Code statusLine: prints "Opus 5.5 · 43% ctx · $1.20" and mirrors context/cost to the tmux pane border
+cmd_statusline() {
+    local input line
+    input="$(cat)"
+    line="$(jq -r '
+        [ (.model.display_name // empty),
+          (.context_window.used_percentage // empty | "\(floor)% ctx"),
+          (.cost.total_cost_usd // empty | "$\(. * 100 | round / 100)")
+        ] | join(" · ")' <<<"$input" 2>/dev/null)"
+    if [[ -n "${TMUX_PANE:-}" && -n "${TMUX:-}" ]]; then
+        t set -p -t "$TMUX_PANE" @claude_ctx "$(jq -r '
+            [ (.context_window.used_percentage // empty | "\(floor)%"),
+              (.cost.total_cost_usd // empty | "$\(. * 100 | round / 100)") ] | join(" · ")' <<<"$input" 2>/dev/null)" 2>/dev/null
+    fi
+    echo "$line"
+}
+
+# tmux-resurrect restore: reopen this pane's conversation (or the latest in this directory)
+cmd_resume() {
+    local key sid=""
+    if [[ -n "${TMUX_PANE:-}" ]]; then
+        key="$(t display -p -t "$TMUX_PANE" '#S:#I.#P' | tr '/' '_')"
+        [[ -f "$STATE_DIR/$key" ]] && sid="$(cat "$STATE_DIR/$key")"
+    fi
+    if [[ -n "$sid" ]]; then
+        exec claude --resume "$sid"
+    else
+        exec claude --continue
     fi
 }
 
 case "${1:-}" in
-    hook) cmd_hook ;;
-    next) cmd_next ;;
-    new)  shift; cmd_new "$@" ;;
-    *)    sed -n '2,7s/^# \{0,1\}//p' "$0"; exit 1 ;;
+    hook)       cmd_hook ;;
+    remind)     shift; cmd_remind "$@" ;;
+    next)       cmd_next ;;
+    new)        shift; cmd_new "$@" ;;
+    project)    shift; cmd_project "$@" ;;
+    dashboard)  shift; cmd_dashboard "$@" ;;
+    send)       shift; cmd_send "$@" ;;
+    scratch)    cmd_scratch ;;
+    team)       shift; cmd_team "$@" ;;
+    dnd)        cmd_dnd ;;
+    resume)     cmd_resume ;;
+    statusline) cmd_statusline ;;
+    *)          sed -n '2,15s/^# \{0,1\}//p' "$0"; exit 1 ;;
 esac

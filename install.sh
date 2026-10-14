@@ -305,6 +305,7 @@ install_zsh() {
 install_git() {
     info "── git ──"
     symlink "$DOTFILES/git/gitconfig" "$HOME/.gitconfig"
+    symlink "$DOTFILES/git/ignore" "$HOME/.config/git/ignore"
     if [[ ! -f "$HOME/.gitconfig.local" ]]; then
         local email
         email="$(prompt "Git email for this machine (blank to skip):")"
@@ -404,12 +405,14 @@ configure_claude_settings() {
         # Drop our previous entries so re-running is idempotent, then add them back
         def ours: .hooks | any(.command == $cmd);
         .hooks |= (. // {})
-        | reduce ("PreToolUse", "UserPromptSubmit", "PostToolUse", "Notification", "Stop", "SessionEnd") as $ev (.;
+        | reduce ("SessionStart", "PreToolUse", "UserPromptSubmit", "PostToolUse", "Notification", "Stop", "SessionEnd") as $ev (.;
             .hooks[$ev] = ([(.hooks[$ev] // [])[] | select(ours | not)]
                            + [{hooks: [{type: "command", command: $cmd, timeout: 10}]}]))
         # Agent teams: one tmux pane per teammate when running inside tmux
         | .env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
         | .teammateMode = "auto"
+        # Status line: model · context % · cost (also mirrored to the tmux pane border). Kept if you have your own.
+        | .statusLine //= {type: "command", command: "$HOME/.local/bin/claude-tmux statusline"}
     ' "$settings" > "$tmp" && mv "$tmp" "$settings"
     success "Claude Code hooks → tmux (~/.claude/settings.json)"
 }
@@ -445,13 +448,13 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
   brew    - Homebrew (macOS & Linux) + Brewfile (CLI tools; casks/fonts on macOS)
   apps    - Linux only: Flatpak apps, Nerd Fonts, gcloud, AWS session-manager-plugin
   zsh     - zshrc + p10k + ~/.zshrc.local + bin/ helpers
-  git     - gitconfig + ~/.gitconfig.local (email)
+  git     - gitconfig + global gitignore + ~/.gitconfig.local (email)
   tmux    - tmux.conf + TPM + plugins
   kitty   - kitty config + theme
   nvim    - Neovim config + plugins (lazy-lock.json)
   node    - Node LTS via fnm
   python  - pipenv via uv
-  claude  - Claude Code CLI + tmux hooks (state icons, notifications, agent-team panes)
+  claude  - Claude Code CLI + tmux hooks, status line, agent-team panes
   macos   - macOS system defaults (macos.sh; skipped elsewhere)
 
 Usage:

@@ -43,9 +43,12 @@ unset _zcompdump
 alias vim="nvim"
 # Claude Code in its own tmux window named after the project: ct [dir] [claude args]
 alias ct="claude-tmux new"
+# Pick a project → its own tmux session with claude + nvim windows (prefix f inside tmux)
+alias tp="claude-tmux project"
 
 # ── Tools ────────────────────────────────────────────────────────────
 (( $+commands[fzf] )) && source <(fzf --zsh)
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
 
 # ── Google Cloud SDK (brew cask or manual install in ~) ──────────────
 for _gcloud in "$HOMEBREW_PREFIX/share/google-cloud-sdk" "$HOME/google-cloud-sdk"; do

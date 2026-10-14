@@ -1,0 +1,5 @@
+# Global gitignore (linked to ~/.config/git/ignore, git's default excludes file)
+.DS_Store
+**/.claude/settings.local.json
+# Worktrees created by `claude --worktree` (ct -w / prefix W)
+**/.claude/worktrees/

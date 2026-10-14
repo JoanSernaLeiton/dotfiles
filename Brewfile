@@ -14,6 +14,7 @@ brew "powerlevel10k"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 brew "fzf"
+brew "zoxide"                 # frecent dirs: `z`, and the tmux project picker (prefix f)
 brew "bat"
 brew "fd"
 brew "ripgrep"
