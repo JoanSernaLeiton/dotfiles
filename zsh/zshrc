@@ -6,8 +6,10 @@ unset _brew
 
 # Auto-start tmux on terminal open (before p10k to avoid instant-prompt conflicts).
 # Guarded so a fresh machine without tmux doesn't exec into nothing and close the terminal.
+# Not `exec`: if tmux fails to start (bad terminfo, broken config) you keep a plain shell and see
+# the error instead of the tab closing instantly. A clean tmux exit still closes the tab.
 if [[ -z "$TMUX" && "$TERM_PROGRAM" != "vscode" && -o interactive ]] && (( $+commands[tmux] )); then
-  exec tmux new-session
+  tmux new-session && exit
 fi
 
 # Enable Powerlevel10k instant prompt — must stay near the top.
