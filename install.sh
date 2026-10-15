@@ -134,7 +134,7 @@ read_list() { grep -vE '^\s*(#|$)' "$1"; }
 
 # ── Modules ──────────────────────────────────────────────────────────
 
-MODULES=(system brew apps zsh git tmux kitty nvim node python claude macos)
+MODULES=(system brew apps zsh git tmux kitty nvim node python claude opencode macos)
 
 install_system() {
     info "── system ──"
@@ -417,6 +417,19 @@ configure_claude_settings() {
     success "Claude Code hooks → tmux (~/.claude/settings.json)"
 }
 
+install_opencode() {
+    info "── opencode ──"
+    if command -v opencode &>/dev/null || [[ -x "$HOME/.opencode/bin/opencode" ]]; then
+        info "OpenCode already installed"
+    else
+        curl -fsSL https://opencode.ai/install | bash
+    fi
+    # Same pane states, notifications and `prefix a` as Claude: the plugin feeds claude-tmux
+    symlink "$DOTFILES/bin/claude-tmux" "$HOME/.local/bin/claude-tmux"
+    symlink "$DOTFILES/opencode/plugins/tmux.ts" "$HOME/.config/opencode/plugins/tmux.ts"
+    success "opencode done"
+}
+
 install_macos() {
     info "── macos ──"
     if [[ "$OS" != macos ]]; then
@@ -455,6 +468,7 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
   node    - Node LTS via fnm
   python  - pipenv via uv
   claude  - Claude Code CLI + tmux hooks, status line, agent-team panes
+  opencode - OpenCode CLI + tmux plugin (same pane states and notifications as Claude)
   macos   - macOS system defaults (macos.sh; skipped elsewhere)
 
 Usage:

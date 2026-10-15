@@ -51,6 +51,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 | `tmux/tmux.conf` | tmux (prefix `C-a`, TPM plugins) |
 | `kitty/` | kitty config + theme |
 | `nvim/` | Neovim (lazy.nvim, plugin versions pinned in `lazy-lock.json`) |
+| `opencode/plugins/` | OpenCode plugins linked into `~/.config/opencode/plugins` (`tmux.ts`) |
 | `macos.sh` | macOS defaults (key repeat, Finder, Dock, screenshots) |
 
 ## Claude Code + tmux
@@ -85,6 +86,12 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 | `prefix Space` | Command palette (has all of the above, plus sync panes and the full key list) |
 
 `prefix f`, `prefix E` and `prefix ?` replace tmux's find-window, spread-layout and list-keys (the key list is in the palette). Hooks only apply to Claude sessions started after `./install.sh claude`.
+
+### OpenCode
+
+`./install.sh opencode` links `opencode/plugins/tmux.ts` into `~/.config/opencode/plugins`. It turns OpenCode events into the same hook calls, so OpenCode panes get the same icons, notifications, reminders, `prefix a`, dashboard and pane border (with cost instead of context %).
+
+OpenCode runs plugins in a shared background service, not in your pane. So the plugin looks for the pane running `opencode` in that project folder. Two OpenCode panes in the same folder are ambiguous and get skipped; start one of them with `opencode --standalone` and that one tracks its own pane. Restart OpenCode after installing (`opencode service restart` if the background service is already up). `OPENCODE_TMUX_LOG=/tmp/oc-tmux.log` logs what the plugin sends.
 
 ## Private / machine-specific config
 
