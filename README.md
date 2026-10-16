@@ -51,7 +51,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 | `tmux/tmux.conf` | tmux (prefix `C-a`, TPM plugins) |
 | `kitty/` | kitty config + theme |
 | `nvim/` | Neovim (lazy.nvim, plugin versions pinned in `lazy-lock.json`) |
-| `opencode/plugins/` | OpenCode plugins linked into `~/.config/opencode/plugins` (`tmux.ts`) |
+| `opencode/` | OpenCode config linked into `~/.config/opencode`: `opencode.json` (model, MCPs), `AGENTS.md` (global rules), `plugins/` (`rtk.ts`, `tmux.ts`) |
 | `macos.sh` | macOS defaults (key repeat, Finder, Dock, screenshots) |
 
 ## Claude Code + tmux

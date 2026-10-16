@@ -426,7 +426,11 @@ install_opencode() {
     fi
     # Same pane states, notifications and `prefix a` as Claude: the plugin feeds claude-tmux
     symlink "$DOTFILES/bin/claude-tmux" "$HOME/.local/bin/claude-tmux"
-    symlink "$DOTFILES/opencode/plugins/tmux.ts" "$HOME/.config/opencode/plugins/tmux.ts"
+    # Config, global rules and plugins. service.json and cli.json stay local (service password)
+    local f
+    for f in opencode.json AGENTS.md plugins/rtk.ts plugins/tmux.ts; do
+        symlink "$DOTFILES/opencode/$f" "$HOME/.config/opencode/$f"
+    done
     success "opencode done"
 }
 
@@ -468,7 +472,7 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
   node    - Node LTS via fnm
   python  - pipenv via uv
   claude  - Claude Code CLI + tmux hooks, status line, agent-team panes
-  opencode - OpenCode CLI + tmux plugin (same pane states and notifications as Claude)
+  opencode - OpenCode CLI + config (model, MCPs, AGENTS.md) + rtk and tmux plugins
   macos   - macOS system defaults (macos.sh; skipped elsewhere)
 
 Usage:
