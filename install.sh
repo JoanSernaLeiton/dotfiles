@@ -387,7 +387,33 @@ install_claude() {
         curl -fsSL https://claude.ai/install.sh | bash
     fi
     configure_claude_settings
+    configure_claude_mcp
+    configure_claude_rtk
     success "claude done"
+}
+
+# User-scope MCP servers from claude/mcp.json (same ones OpenCode gets in opencode/opencode.json)
+configure_claude_mcp() {
+    if ! command -v claude &>/dev/null || ! command -v jq &>/dev/null; then
+        warn "claude or jq not found; skipping MCP servers"
+        return
+    fi
+    local name
+    for name in $(jq -r 'keys[]' "$DOTFILES/claude/mcp.json"); do
+        # Replace instead of skip, so changes in mcp.json reach machines that already have it
+        claude mcp remove -s user "$name" &>/dev/null || true
+        claude mcp add-json -s user "$name" "$(jq -c --arg n "$name" '.[$n]' "$DOTFILES/claude/mcp.json")" >/dev/null \
+            && success "Claude MCP: $name" || warn "Could not add Claude MCP $name"
+    done
+}
+
+# RTK: PreToolUse hook that rewrites shell commands to save tokens, plus ~/.claude/RTK.md
+configure_claude_rtk() {
+    if ! command -v rtk &>/dev/null; then
+        warn "rtk not found; run './install.sh brew' first"
+        return
+    fi
+    (cd "$HOME" && rtk init -g --auto-patch) && success "Claude Code hook → rtk"
 }
 
 # Merge the tmux integration into ~/.claude/settings.json without touching the rest of
@@ -471,7 +497,7 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
   nvim    - Neovim config + plugins (lazy-lock.json)
   node    - Node LTS via fnm
   python  - pipenv via uv
-  claude  - Claude Code CLI + tmux hooks, status line, agent-team panes
+  claude  - Claude Code CLI + tmux hooks, status line, agent-team panes, MCPs (memory, playwright), rtk hook
   opencode - OpenCode CLI + config (model, MCPs, AGENTS.md) + rtk and tmux plugins
   macos   - macOS system defaults (macos.sh; skipped elsewhere)
 

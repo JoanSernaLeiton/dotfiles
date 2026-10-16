@@ -51,6 +51,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 | `tmux/tmux.conf` | tmux (prefix `C-a`, TPM plugins) |
 | `kitty/` | kitty config + theme |
 | `nvim/` | Neovim (lazy.nvim, plugin versions pinned in `lazy-lock.json`) |
+| `claude/mcp.json` | MCP servers for Claude Code (added at user scope by `./install.sh claude`) |
 | `opencode/` | OpenCode config linked into `~/.config/opencode`: `opencode.json` (model, MCPs), `AGENTS.md` (global rules), `plugins/` (`rtk.ts`, `tmux.ts`) |
 | `macos.sh` | macOS defaults (key repeat, Finder, Dock, screenshots) |
 
@@ -68,6 +69,8 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 - The status bar counts Claude panes across **all** sessions (`●2 ✓1`), shows `🔕` while do-not-disturb is on, and each pane border shows what Claude is waiting on (`→ Run: git push`) plus its context use.
 - The Claude status line (bottom of Claude itself) shows `model · ctx% · $cost`; it's only set if you don't already have one.
 - Agent teams are enabled with `teammateMode: auto`: inside tmux each teammate gets its own labelled pane. `prefix T` moves the teammates to their own window so the lead keeps the full screen.
+- MCP servers `memory` (`http://127.0.0.1:8765/mcp`) and `playwright`, user scope, from `claude/mcp.json`. OpenCode gets the same two from `opencode/opencode.json`. The memory server itself isn't installed here.
+- RTK: `rtk init -g` adds the `rtk hook claude` PreToolUse hook (shell commands go through `rtk` to save tokens) and `~/.claude/RTK.md`. OpenCode uses `opencode/plugins/rtk.ts` for the same thing.
 - tmux-resurrect + tmux-continuum save the layout every 10 minutes and restore it when tmux starts; panes that were running Claude come back with `claude --resume` on the same conversation.
 
 | Key | Action |
