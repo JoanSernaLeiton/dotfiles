@@ -464,6 +464,8 @@ install_claude() {
     else
         curl -fsSL https://claude.ai/install.sh | bash
     fi
+    # Global rules; linked before rtk init, which appends @RTK.md to this file
+    symlink "$DOTFILES/claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
     configure_claude_settings
     configure_claude_mcp
     configure_claude_rtk
