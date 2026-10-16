@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.joan.mcp-memory</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__HOME__/.local/bin/memory</string>
+    <string>server</string>
+    <string>--streamable-http</string>
+    <string>--sse-host</string><string>127.0.0.1</string>
+    <string>--sse-port</string><string>8765</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/bin:/bin</string>
+    <key>MCP_MEMORY_STORAGE_BACKEND</key><string>sqlite_vec</string>
+    <key>MCP_EMBEDDING_MODEL</key><string>paraphrase-multilingual-MiniLM-L12-v2</string>
+    <key>MCP_MEMORY_SQLITE_PRAGMAS</key><string>journal_mode=WAL,busy_timeout=15000,cache_size=20000,synchronous=NORMAL</string>
+    <key>HF_HUB_OFFLINE</key><string>1</string>
+    <key>TRANSFORMERS_OFFLINE</key><string>1</string>
+    <key>LOG_LEVEL</key><string>WARNING</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>__HOME__/.mcp-memory/logs/server.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/.mcp-memory/logs/server.err.log</string>
+</dict>
+</plist>

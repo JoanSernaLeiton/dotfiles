@@ -134,7 +134,7 @@ read_list() { grep -vE '^\s*(#|$)' "$1"; }
 
 # ── Modules ──────────────────────────────────────────────────────────
 
-MODULES=(system brew apps zsh git tmux kitty nvim node python claude opencode macos)
+MODULES=(system brew apps zsh git tmux kitty nvim node python memory claude opencode macos)
 
 install_system() {
     info "── system ──"
@@ -379,6 +379,84 @@ install_python() {
     success "python done"
 }
 
+# Shared memory MCP server on 127.0.0.1:8765, used by Claude Code and OpenCode.
+# Runs offline, so the embedding model is downloaded here first.
+MEMORY_VERSION="12.1.0"
+MEMORY_MODEL="paraphrase-multilingual-MiniLM-L12-v2"
+
+install_memory() {
+    info "── memory ──"
+    if ! command -v uv &>/dev/null; then
+        warn "uv not found; run './install.sh brew' first"
+        return
+    fi
+    if uv tool list 2>/dev/null | grep -q '^mcp-memory-service '; then
+        info "mcp-memory-service already installed"
+    else
+        # Homebrew's Python: uv's own builds can't load SQLite extensions, which sqlite-vec needs
+        local py
+        py="$(brew --prefix python@3.12 2>/dev/null)/bin/python3.12"
+        [[ -x "$py" ]] || { warn "python@3.12 not found; run './install.sh brew' first"; return; }
+        uv tool install --python "$py" --with onnxruntime "mcp-memory-service[sqlite-ml]==$MEMORY_VERSION"
+    fi
+
+    local model_dir="$HOME/.cache/mcp_memory/onnx_models/$MEMORY_MODEL"
+    if [[ ! -f "$model_dir/tokenizer.json" ]]; then
+        info "Downloading embedding model $MEMORY_MODEL..."
+        # Plain HTTP: the hf-xet transport can stall on this 470 MB file
+        HF_HUB_DISABLE_XET=1 "$(uv tool dir)/mcp-memory-service/bin/python" - "$model_dir" "$MEMORY_MODEL" <<'PY'
+import sys
+from huggingface_hub import snapshot_download
+snapshot_download(repo_id=f"onnx-community/{sys.argv[2]}-ONNX", local_dir=sys.argv[1],
+                  allow_patterns=["model.onnx", "onnx/model.onnx", "tokenizer.json", "tokenizer_config.json",
+                                  "config.json", "special_tokens_map.json"])
+PY
+    fi
+
+    mkdir -p "$HOME/.mcp-memory/logs"
+    if [[ "$OS" == macos ]]; then
+        local label=com.joan.mcp-memory plist="$HOME/Library/LaunchAgents/com.joan.mcp-memory.plist" tmp
+        tmp="$(mktemp)"
+        sed "s#__HOME__#$HOME#g" "$DOTFILES/memory/$label.plist" > "$tmp"
+        mkdir -p "$(dirname "$plist")"
+        if ! cmp -s "$tmp" "$plist"; then
+            mv "$tmp" "$plist"
+            launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+        else
+            rm -f "$tmp"
+        fi
+        launchctl print "gui/$(id -u)/$label" &>/dev/null || launchctl bootstrap "gui/$(id -u)" "$plist"
+    elif command -v systemctl &>/dev/null && systemctl --user show-environment &>/dev/null; then
+        symlink "$DOTFILES/memory/mcp-memory.service" "$HOME/.config/systemd/user/mcp-memory.service"
+        systemctl --user daemon-reload
+        systemctl --user enable --now mcp-memory.service
+    else
+        warn "No systemd user session; start it yourself: memory server --streamable-http --sse-host 127.0.0.1 --sse-port 8765"
+    fi
+
+    local i
+    for i in {1..30}; do
+        memory_healthy && { success "memory done (http://127.0.0.1:8765/mcp)"; return; }
+        sleep 2
+    done
+    warn "Memory server not healthy on :8765; logs in ~/.mcp-memory/logs"
+}
+
+# The server answers HTTP even when its database failed to open, so ask it over MCP
+memory_healthy() {
+    local url=http://127.0.0.1:8765/mcp sid
+    local h=(-H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream')
+    sid="$(curl -s -D - -o /dev/null --max-time 10 "${h[@]}" "$url" \
+        -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"dotfiles","version":"1"}}}' \
+        | tr -d '\r' | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}')"
+    # Stateless servers send no session id; only pass it when there is one
+    [[ -n "$sid" ]] && h+=(-H "mcp-session-id: $sid")
+    curl -s -o /dev/null --max-time 10 "${h[@]}" "$url" -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+    curl -s --max-time 60 "${h[@]}" "$url" \
+        -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"memory_health","arguments":{}}}' \
+        | grep -q 'database validation successful'
+}
+
 install_claude() {
     info "── claude ──"
     if command -v claude &>/dev/null || [[ -x "$HOME/.local/bin/claude" ]]; then
@@ -394,15 +472,17 @@ install_claude() {
 
 # User-scope MCP servers from claude/mcp.json (same ones OpenCode gets in opencode/opencode.json)
 configure_claude_mcp() {
-    if ! command -v claude &>/dev/null || ! command -v jq &>/dev/null; then
+    # Fresh install: claude lands in ~/.local/bin, which may not be on PATH yet
+    local claude name
+    claude="$(command -v claude || echo "$HOME/.local/bin/claude")"
+    if [[ ! -x "$claude" ]] || ! command -v jq &>/dev/null; then
         warn "claude or jq not found; skipping MCP servers"
         return
     fi
-    local name
     for name in $(jq -r 'keys[]' "$DOTFILES/claude/mcp.json"); do
         # Replace instead of skip, so changes in mcp.json reach machines that already have it
-        claude mcp remove -s user "$name" &>/dev/null || true
-        claude mcp add-json -s user "$name" "$(jq -c --arg n "$name" '.[$n]' "$DOTFILES/claude/mcp.json")" >/dev/null \
+        "$claude" mcp remove -s user "$name" &>/dev/null || true
+        "$claude" mcp add-json -s user "$name" "$(jq -c --arg n "$name" '.[$n]' "$DOTFILES/claude/mcp.json")" >/dev/null \
             && success "Claude MCP: $name" || warn "Could not add Claude MCP $name"
     done
 }
@@ -497,6 +577,7 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
   nvim    - Neovim config + plugins (lazy-lock.json)
   node    - Node LTS via fnm
   python  - pipenv via uv
+  memory  - Shared memory MCP server (mcp-memory-service on :8765, launchd/systemd) for Claude and OpenCode
   claude  - Claude Code CLI + tmux hooks, status line, agent-team panes, MCPs (memory, playwright), rtk hook
   opencode - OpenCode CLI + config (model, MCPs, AGENTS.md) + rtk and tmux plugins
   macos   - macOS system defaults (macos.sh; skipped elsewhere)

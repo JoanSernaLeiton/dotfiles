@@ -41,6 +41,7 @@ brew "pnpm"
 brew "deno"
 brew "go"
 brew "python@3.14"
+brew "python@3.12"   # mcp-memory-service (needs SQLite extension loading, which uv's own Pythons lack)
 brew "uv"
 brew "pipx"
 brew "gcc"

@@ -51,6 +51,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 | `tmux/tmux.conf` | tmux (prefix `C-a`, TPM plugins) |
 | `kitty/` | kitty config + theme |
 | `nvim/` | Neovim (lazy.nvim, plugin versions pinned in `lazy-lock.json`) |
+| `memory/` | launchd plist and systemd unit for the shared memory MCP server |
 | `claude/mcp.json` | MCP servers for Claude Code (added at user scope by `./install.sh claude`) |
 | `opencode/` | OpenCode config linked into `~/.config/opencode`: `opencode.json` (model, MCPs), `AGENTS.md` (global rules), `plugins/` (`rtk.ts`, `tmux.ts`) |
 | `macos.sh` | macOS defaults (key repeat, Finder, Dock, screenshots) |
@@ -69,7 +70,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 - The status bar counts Claude panes across **all** sessions (`●2 ✓1`), shows `🔕` while do-not-disturb is on, and each pane border shows what Claude is waiting on (`→ Run: git push`) plus its context use.
 - The Claude status line (bottom of Claude itself) shows `model · ctx% · $cost`; it's only set if you don't already have one.
 - Agent teams are enabled with `teammateMode: auto`: inside tmux each teammate gets its own labelled pane. `prefix T` moves the teammates to their own window so the lead keeps the full screen.
-- MCP servers `memory` (`http://127.0.0.1:8765/mcp`) and `playwright`, user scope, from `claude/mcp.json`. OpenCode gets the same two from `opencode/opencode.json`. The memory server itself isn't installed here.
+- MCP servers `memory` (`http://127.0.0.1:8765/mcp`) and `playwright`, user scope, from `claude/mcp.json`. OpenCode gets the same two from `opencode/opencode.json`. The memory server comes from `./install.sh memory`.
 - RTK: `rtk init -g` adds the `rtk hook claude` PreToolUse hook (shell commands go through `rtk` to save tokens) and `~/.claude/RTK.md`. OpenCode uses `opencode/plugins/rtk.ts` for the same thing.
 - tmux-resurrect + tmux-continuum save the layout every 10 minutes and restore it when tmux starts; panes that were running Claude come back with `claude --resume` on the same conversation.
 
@@ -89,6 +90,10 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 | `prefix Space` | Command palette (has all of the above, plus sync panes and the full key list) |
 
 `prefix f`, `prefix E` and `prefix ?` replace tmux's find-window, spread-layout and list-keys (the key list is in the palette). Hooks only apply to Claude sessions started after `./install.sh claude`.
+
+### Memory server
+
+`./install.sh memory` installs `mcp-memory-service` with `uv tool` (on Homebrew's `python@3.12`: uv's own Pythons can't load the sqlite-vec extension), downloads the multilingual embedding model once, and keeps the server running on `127.0.0.1:8765` with launchd (`memory/com.joan.mcp-memory.plist`) or a systemd user unit (`memory/mcp-memory.service`). It runs offline after that. Data (`sqlite_vec.db`) lives in `~/Library/Application Support/mcp-memory` on macOS and isn't tracked: back it up yourself. Logs: `~/.mcp-memory/logs`.
 
 ### OpenCode
 

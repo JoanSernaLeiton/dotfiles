@@ -1,0 +1,16 @@
+[Unit]
+Description=MCP memory server (shared by Claude Code and OpenCode)
+
+[Service]
+ExecStart=%h/.local/bin/memory server --streamable-http --sse-host 127.0.0.1 --sse-port 8765
+Environment=MCP_MEMORY_STORAGE_BACKEND=sqlite_vec
+Environment=MCP_EMBEDDING_MODEL=paraphrase-multilingual-MiniLM-L12-v2
+Environment=MCP_MEMORY_SQLITE_PRAGMAS=journal_mode=WAL,busy_timeout=15000,cache_size=20000,synchronous=NORMAL
+Environment=HF_HUB_OFFLINE=1
+Environment=TRANSFORMERS_OFFLINE=1
+Environment=LOG_LEVEL=WARNING
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
