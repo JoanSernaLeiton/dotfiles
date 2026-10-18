@@ -9,11 +9,13 @@ The `memory` MCP server (http://127.0.0.1:8765/mcp) is shared with Claude Code. 
 3. Before storing, check the search results for an existing memory on the same topic; update it (`memory_update`) instead of creating a duplicate.
 4. Never store secrets, tokens, or passwords.
 
-## No code comments rule (STRICT)
+## Self-documenting code rule (STRICT)
 
-Comments in code are completely forbidden. Code must be fully self-descriptive.
+Comments in code are completely forbidden. Code must be fully self-descriptive through very descriptive names.
 
 - Never write comments of any kind: inline, block, docstrings, JSDoc, TODOs, section headers, or commented-out code.
-- Explain intent through code instead: precise names for variables, functions and types, small single-purpose functions, named constants instead of magic values, and clear structure.
+- The code documents itself through its names. Every variable, function, method, parameter, type and constant gets a very descriptive name that says exactly what it holds or does (`remainingRetryAttempts`, `calculateMonthlyInvoiceTotal`).
+- No abbreviations or cryptic names: no `i`, `e`, `err`, `res`, `req`, `ctx`, `cfg`, `tmp`, `val`, `obj`, `arr`, `str`, `btn`, `idx`, `cnt`, `usr`. Spell every word out (`error`, `response`, `configuration`, `userIndex`). Long names are fine; unclear names are not.
+- Also: small single-purpose functions, named constants instead of magic values, and clear structure.
 - If code seems to need a comment, rename or restructure it until it does not.
 - Put explanations in chat replies, commit messages or docs, never in the code.
