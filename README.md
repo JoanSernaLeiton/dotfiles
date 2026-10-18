@@ -53,6 +53,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 | `nvim/` | Neovim (lazy.nvim, plugin versions pinned in `lazy-lock.json`) |
 | `memory/` | launchd plist and systemd unit for the shared memory MCP server |
 | `claude/mcp.json` | MCP servers for Claude Code (added at user scope by `./install.sh claude`) |
+| `claude/*.md` | Global Claude Code rules (`CLAUDE.md`, plus the `RTK.md` and `VOICE.md` it includes), linked into `~/.claude` |
 | `opencode/` | OpenCode config linked into `~/.config/opencode`: `opencode.json` (model, MCPs), `AGENTS.md` (global rules), `plugins/` (`rtk.ts`, `tmux.ts`) |
 | `macos.sh` | macOS defaults (key repeat, Finder, Dock, screenshots) |
 

@@ -464,6 +464,10 @@ install_claude() {
     else
         curl -fsSL https://claude.ai/install.sh | bash
     fi
+    local f
+    for f in CLAUDE.md RTK.md VOICE.md; do
+        symlink "$DOTFILES/claude/$f" "$HOME/.claude/$f"
+    done
     configure_claude_settings
     configure_claude_mcp
     configure_claude_rtk
