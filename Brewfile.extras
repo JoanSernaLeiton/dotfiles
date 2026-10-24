@@ -4,5 +4,4 @@
 cask "slack"
 cask "zoom"
 cask "anydesk"
-cask "google-chrome@dev"
 cask "firefox"

@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export HOMEBREW_NO_AUTO_UPDATE=1
+export HOMEBREW_NO_ENV_HINTS=1
+
+readonly BREW_UPDATE_TIMEOUT_SECONDS=600
+readonly BREW_UPGRADE_TIMEOUT_SECONDS=5400
+readonly BREW_CLEANUP_TIMEOUT_SECONDS=600
+readonly TIMEOUT_EXIT_STATUS=124
+readonly MAXIMUM_CACHE_AGE_IN_DAYS=7
+readonly NETWORK_CHECK_URL="https://formulae.brew.sh"
+readonly NETWORK_CHECK_ATTEMPTS=8
+readonly SECONDS_BETWEEN_NETWORK_CHECKS=15
+readonly LOG_FILE="$HOME/Library/Logs/brew-daily-upgrade.log"
+readonly MAXIMUM_LOG_LINES=5000
+readonly MEMORY_SERVER_LAUNCH_AGENT_LABEL="com.joan.mcp-memory"
+readonly MEMORY_SERVER_PYTHON_FORMULA="python@3.12"
+readonly NOTIFICATION_TITLE="Homebrew"
+readonly NOTIFICATION_SUBTITLE="Detalle en ~/Library/Logs/brew-daily-upgrade.log"
+
+failures=()
+upgraded_packages=()
+
+print_usage() {
+    echo "Usage: brew-daily-upgrade [--dry-run]"
+    echo "  brew update, brew upgrade (no --greedy: self-updating apps are left alone) and brew cleanup."
+    echo "  Restarts the brew services and the memory MCP server whose formula was upgraded."
+    echo "  Notifies only when something was upgraded or failed. Without a terminal it logs to $LOG_FILE."
+    echo "  --dry-run  only lists what would be upgraded"
+}
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $*"
+}
+
+trim_log_file() {
+    [[ -f "$LOG_FILE" ]] || return 0
+    local log_line_count trimmed_log_content
+    log_line_count="$(wc -l < "$LOG_FILE")"
+    (( log_line_count > MAXIMUM_LOG_LINES )) || return 0
+    trimmed_log_content="$(tail -n "$MAXIMUM_LOG_LINES" "$LOG_FILE")"
+    printf '%s\n' "$trimmed_log_content" > "$LOG_FILE"
+}
+
+wait_for_network() {
+    local network_check_attempt
+    for (( network_check_attempt = 1; network_check_attempt <= NETWORK_CHECK_ATTEMPTS; network_check_attempt++ )); do
+        curl --silent --head --fail --max-time 10 "$NETWORK_CHECK_URL" >/dev/null && return 0
+        sleep "$SECONDS_BETWEEN_NETWORK_CHECKS"
+    done
+    return 1
+}
+
+summarize_brew_error() {
+    local brew_output="$1" brew_exit_status="$2" first_error_line
+    if (( brew_exit_status == TIMEOUT_EXIT_STATUS )); then
+        echo "se pasó del tiempo límite"
+        return
+    fi
+    first_error_line="$(grep -m1 -E '^Error' <<< "$brew_output")"
+    echo "${first_error_line:-salió con código $brew_exit_status}"
+}
+
+run_brew_step() {
+    local step_timeout_seconds="$1"
+    shift
+    local step_output step_exit_status
+    log "→ brew $*"
+    step_output="$(timeout "$step_timeout_seconds" brew "$@" 2>&1)"
+    step_exit_status=$?
+    [[ -n "$step_output" ]] && echo "$step_output"
+    if (( step_exit_status != 0 )); then
+        failures+=("brew $1: $(summarize_brew_error "$step_output" "$step_exit_status")")
+    fi
+    return "$step_exit_status"
+}
+
+list_outdated_packages() {
+    brew outdated --quiet 2>/dev/null
+}
+
+collect_upgraded_packages() {
+    local packages_outdated_before="$1" packages_still_outdated="$2" package_name
+    while IFS= read -r package_name; do
+        [[ -n "$package_name" ]] || continue
+        grep -qxF "$package_name" <<< "$packages_still_outdated" || upgraded_packages+=("$package_name")
+    done <<< "$packages_outdated_before"
+}
+
+restart_memory_server() {
+    local memory_server_service_target="gui/$(id -u)/$MEMORY_SERVER_LAUNCH_AGENT_LABEL"
+    launchctl print "$memory_server_service_target" >/dev/null 2>&1 || return 0
+    log "→ launchctl kickstart -k $memory_server_service_target ($MEMORY_SERVER_PYTHON_FORMULA was upgraded)"
+    launchctl kickstart -k "$memory_server_service_target" || failures+=("No se pudo reiniciar el servidor de memoria")
+}
+
+restart_upgraded_services() {
+    local started_brew_services package_name formula_name
+    started_brew_services="$(brew services list 2>/dev/null | awk '$2 == "started" { print $1 }')"
+    for package_name in ${upgraded_packages[@]+"${upgraded_packages[@]}"}; do
+        formula_name="${package_name##*/}"
+        if grep -qxF "$formula_name" <<< "$started_brew_services"; then
+            log "→ brew services restart $formula_name"
+            brew services restart "$formula_name" || failures+=("No se pudo reiniciar el servicio $formula_name")
+        fi
+        if [[ "$formula_name" == "$MEMORY_SERVER_PYTHON_FORMULA" ]]; then
+            restart_memory_server
+        fi
+    done
+}
+
+join_with_commas() {
+    local joined_text="" item
+    for item in "$@"; do
+        joined_text="${joined_text:+$joined_text, }$item"
+    done
+    echo "$joined_text"
+}
+
+send_notification() {
+    osascript \
+        -e 'on run notificationArguments' \
+        -e 'display notification (item 1 of notificationArguments) with title (item 2 of notificationArguments) subtitle (item 3 of notificationArguments)' \
+        -e 'end run' \
+        "$1" "$NOTIFICATION_TITLE" "$NOTIFICATION_SUBTITLE" >/dev/null
+}
+
+notify_outcome() {
+    local upgraded_summary="" failure_summary=""
+    if (( ${#upgraded_packages[@]} > 0 )); then
+        upgraded_summary="Actualizados (${#upgraded_packages[@]}): $(join_with_commas "${upgraded_packages[@]}")."
+    fi
+    if (( ${#failures[@]} > 0 )); then
+        failure_summary="Falló ${failures[0]}"
+        (( ${#failures[@]} > 1 )) && failure_summary="$failure_summary (y ${#failures[@]} fallos en total)"
+    fi
+    [[ -n "$upgraded_summary$failure_summary" ]] || return 0
+    send_notification "${failure_summary:+$failure_summary. }$upgraded_summary"
+}
+
+main() {
+    local is_dry_run=false packages_outdated_before packages_still_outdated
+    case "${1:-}" in
+        "") ;;
+        --dry-run) is_dry_run=true ;;
+        -h | --help) print_usage; return 0 ;;
+        *) print_usage; return 1 ;;
+    esac
+    if [[ ! -t 1 ]]; then
+        trim_log_file
+        exec >> "$LOG_FILE" 2>&1
+    fi
+    log "brew-daily-upgrade started"
+    if ! wait_for_network; then
+        log "no network, waiting for the next scheduled attempt"
+        return 0
+    fi
+    run_brew_step "$BREW_UPDATE_TIMEOUT_SECONDS" update
+    packages_outdated_before="$(list_outdated_packages)"
+    if [[ "$is_dry_run" == true ]]; then
+        echo "${packages_outdated_before:-Nothing to upgrade}"
+        return 0
+    fi
+    if [[ -n "$packages_outdated_before" ]]; then
+        run_brew_step "$BREW_UPGRADE_TIMEOUT_SECONDS" upgrade
+        packages_still_outdated="$(list_outdated_packages)"
+        collect_upgraded_packages "$packages_outdated_before" "$packages_still_outdated"
+        restart_upgraded_services
+    fi
+    run_brew_step "$BREW_CLEANUP_TIMEOUT_SECONDS" cleanup --prune="$MAXIMUM_CACHE_AGE_IN_DAYS"
+    notify_outcome
+    log "finished: ${#upgraded_packages[@]} upgraded, ${#failures[@]} failures"
+}
+
+main "$@"

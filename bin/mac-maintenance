@@ -42,7 +42,8 @@ idle_claude_sessions=""
 print_usage() {
     echo "Usage: mac-maintenance [--report-only]"
     echo "  Weekly safe cleanup (Docker build cache older than $MAXIMUM_CACHE_AGE_IN_DAYS days, dangling images,"
-    echo "  brew cleanup, uv cache, stale Claude scratchpads) plus a health report and a macOS notification."
+    echo "  uv cache, stale Claude scratchpads) plus a health report and a macOS notification."
+    echo "  Homebrew is cleaned daily by brew-daily-upgrade."
     echo "  --report-only  only writes the report and notifies, nothing is deleted"
 }
 
@@ -74,12 +75,6 @@ clean_docker_caches() {
     dangling_images_summary="$(docker image prune --force 2>&1 | tail -1)"
     cleanup_results+=("Docker, caché de build: ${build_cache_summary//$'\t'/ }")
     cleanup_results+=("Docker, imágenes huérfanas: $dangling_images_summary")
-}
-
-clean_homebrew_cache() {
-    local homebrew_summary
-    homebrew_summary="$(brew cleanup --prune="$MAXIMUM_CACHE_AGE_IN_DAYS" 2>&1 | grep -o 'freed approximately [^ ]*' | tail -1)"
-    cleanup_results+=("Homebrew: ${homebrew_summary:-nada que limpiar}")
 }
 
 clean_uv_cache() {
@@ -291,7 +286,6 @@ main() {
     esac
     if [[ "$should_run_cleanup" == true ]]; then
         clean_docker_caches
-        clean_homebrew_cache
         clean_uv_cache
         remove_stale_claude_scratchpads
     fi

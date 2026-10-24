@@ -80,7 +80,7 @@ if OS.mac?
   cask "bitwarden"
   cask "rectangle"
   cask "obsidian"
-  cask "google-chrome"
+  cask "google-chrome@dev"
   cask "gcloud-cli"
   cask "session-manager-plugin"
   cask "aws-vpn-client"

@@ -19,7 +19,7 @@ Native Windows isn't supported; run `wsl --install` and use the WSL row.
 curl -fsSL https://raw.githubusercontent.com/JoanSernaLeiton/dotfiles/main/bootstrap.sh | bash
 ```
 
-With the optional apps (Slack, Zoom, AnyDesk, Chrome Dev, Firefox), as casks on macOS or Flatpaks on Linux:
+With the optional apps (Slack, Zoom, AnyDesk, Firefox), as casks on macOS or Flatpaks on Linux:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/JoanSernaLeiton/dotfiles/main/bootstrap.sh | bash -s -- --extras
@@ -45,7 +45,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 |---|---|
 | `Brewfile` / `Brewfile.extras` | Homebrew formulas (all OSes), casks and fonts (macOS) |
 | `linux/` | Flatpak app lists (`flatpaks.txt`, `flatpaks.extras.txt`) |
-| `bin/` | Helpers linked into `~/.local/bin` (`clipcopy`, `clippaste`, `claude-tmux`, `mac-maintenance`) |
+| `bin/` | Helpers linked into `~/.local/bin` (`clipcopy`, `clippaste`, `claude-tmux`, `mac-maintenance`, `brew-daily-upgrade`) |
 | `zsh/` | `zshrc`, `p10k.zsh`, `zshrc.local.example` |
 | `git/gitconfig`, `git/ignore` | Shared git config and global ignores (`.DS_Store`, Claude worktrees and local settings) |
 | `tmux/tmux.conf` | tmux (prefix `C-a`, TPM plugins) |
@@ -56,7 +56,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 | `claude/*.md` | Global Claude Code rules (`CLAUDE.md`, plus the `RTK.md` and `VOICE.md` it includes), linked into `~/.claude` |
 | `opencode/` | OpenCode config linked into `~/.config/opencode`: `opencode.json` (model, MCPs), `AGENTS.md` (global rules), `plugins/` (`rtk.ts`, `tmux.ts`) |
 | `macos.sh` | macOS defaults (key repeat, Finder, Dock, screenshots) |
-| `maintenance/` | launchd plist that runs `mac-maintenance` every Sunday at 10:00: safe cache cleanup plus a health report in `~/Library/Logs/mac-maintenance` and a notification (`mac-maintenance --report-only` to only check) |
+| `maintenance/` | launchd plists installed by the `macos` module: `mac-maintenance` every Sunday at 10:00 (safe cache cleanup plus a health report in `~/Library/Logs/mac-maintenance` and a notification; `mac-maintenance --report-only` to only check) and `brew-daily-upgrade` at 07:00 and 21:00 (`brew update`, `brew upgrade` without `--greedy`, `brew cleanup`, restarts upgraded brew services; notifies only on upgrades or failures, log in `~/Library/Logs/brew-daily-upgrade.log`, `brew-daily-upgrade --dry-run` to see what's pending) |
 
 ## Claude Code + tmux
 

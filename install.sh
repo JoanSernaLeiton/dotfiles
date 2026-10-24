@@ -551,14 +551,16 @@ install_macos() {
         return
     fi
     "$DOTFILES/macos.sh"
-    install_maintenance_agent
+    install_maintenance_agent mac-maintenance
+    install_maintenance_agent brew-daily-upgrade
     success "macos done"
 }
 
 install_maintenance_agent() {
-    local label=com.joan.mac-maintenance
+    local agent_name="$1"
+    local label="com.joan.$agent_name"
     local plist="$HOME/Library/LaunchAgents/$label.plist" rendered_plist
-    symlink "$DOTFILES/bin/mac-maintenance" "$HOME/.local/bin/mac-maintenance"
+    symlink "$DOTFILES/bin/$agent_name" "$HOME/.local/bin/$agent_name"
     rendered_plist="$(mktemp)"
     sed "s#__HOME__#$HOME#g" "$DOTFILES/maintenance/$label.plist" > "$rendered_plist"
     mkdir -p "$(dirname "$plist")"
@@ -601,11 +603,11 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
   memory  - Shared memory MCP server (mcp-memory-service on :8765, launchd/systemd) for Claude and OpenCode
   claude  - Claude Code CLI + tmux hooks, status line, agent-team panes, MCPs (memory, playwright), rtk hook
   opencode - OpenCode CLI + config (model, MCPs, AGENTS.md) + rtk and tmux plugins
-  macos   - macOS system defaults (macos.sh) + weekly mac-maintenance launch agent (skipped elsewhere)
+  macos   - macOS system defaults (macos.sh) + launch agents: weekly mac-maintenance, brew-daily-upgrade at 07:00 and 21:00 (skipped elsewhere)
 
 Usage:
   ./install.sh                  # Install everything
-  ./install.sh --extras         # Everything + extras (Slack, Zoom, AnyDesk, Chrome Dev, Firefox)
+  ./install.sh --extras         # Everything + extras (Slack, Zoom, AnyDesk, Firefox)
   ./install.sh tmux nvim        # Specific modules only
   ./install.sh --list           # Show this help
 EOF
