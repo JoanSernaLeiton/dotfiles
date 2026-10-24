@@ -9,7 +9,11 @@ unset _brew
 # Not `exec`: if tmux fails to start (bad terminfo, broken config) you keep a plain shell and see
 # the error instead of the tab closing instantly. A clean tmux exit still closes the tab.
 if [[ -z "$TMUX" && "$TERM_PROGRAM" != "vscode" && -o interactive ]] && (( $+commands[tmux] )); then
-  tmux new-session && exit
+  if [[ -n "$SSH_CONNECTION" ]]; then
+    tmux new-session -A -s ssh && exit
+  else
+    tmux new-session && exit
+  fi
 fi
 
 # Enable Powerlevel10k instant prompt — must stay near the top.
@@ -19,7 +23,7 @@ fi
 
 # ── PATH ─────────────────────────────────────────────────────────────
 typeset -U path  # auto-deduplicate
-path=($HOME/.local/bin $path)
+path=($HOME/.local/bin $HOME/.cargo/bin $path)
 export PATH
 
 # ── Prompt ───────────────────────────────────────────────────────────

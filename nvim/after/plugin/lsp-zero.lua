@@ -222,7 +222,6 @@ local base_servers = {
   'cssls',    -- CSS
   'emmet_ls', -- Emmet
   'pyright',  -- Python
-  'gopls',    -- Go
   'jsonls'   -- JSON
 }
 
@@ -232,6 +231,7 @@ local project_files = {
   { 'angularls',    { 'angular.json' } },
   { 'astro',        { 'astro.config.mjs', 'astro.config.js' } },
   { 'intelephense', { 'composer.json', 'artisan', '.php-version' } },
+  { 'gopls',        { 'go.mod', 'go.work' } },
 }
 
 -- Check for files that indicate specific servers are needed

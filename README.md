@@ -27,23 +27,41 @@ curl -fsSL https://raw.githubusercontent.com/JoanSernaLeiton/dotfiles/main/boots
 
 `bootstrap.sh` makes sure git exists (Xcode CLT on macOS, the native package manager on Linux), clones this repo to `~/dotfiles` over HTTPS and runs `install.sh`. It asks for your `sudo` password once.
 
+## Lite profile
+
+For old or low-RAM machines:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/JoanSernaLeiton/dotfiles/main/bootstrap.sh | bash -s -- --lite
+```
+
+Same shell, editor, Claude Code, OpenCode and memory server. It skips the heavy parts:
+
+- Homebrew installs only `Brewfile`. `Brewfile.full` (Go, Bazel, Deno, cloud CLIs, image tools, the Mac apps) is skipped.
+- No Flatpaks, gcloud or session-manager-plugin. Linux gets the FiraCode Nerd Font and Chrome Dev, the browser the Playwright MCP uses.
+- No `python` module (pipenv).
+- Linux: zram swap (half the RAM, zstd) and the NVIDIA GPU off when `prime-select` exists.
+
+Both profiles bring the dev toolchain: Node through fnm, pnpm, Rust (rustup on Linux, plus the Tauri libraries), Docker with buildx and log rotation, flyctl, OpenTofu and `psql`/`pg_dump`.
+
 ## Already cloned
 
 ```sh
 ./install.sh              # everything
+./install.sh --lite       # lite profile
 ./install.sh --extras     # everything + extras
 ./install.sh nvim tmux    # specific modules
 ./install.sh --list       # list modules
 ```
 
-Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
-`system` installs build tools, zsh, Docker, kitty, clipboard tools and Flatpak on Linux; `apps` (Linux only) installs the Flatpaks, Nerd Fonts, gcloud and the AWS session-manager-plugin; `macos` only runs on macOS. Every module is idempotent; existing files are moved to `~/.dotfiles_backup/<timestamp>/` before being replaced by symlinks.
+Modules: `system brew apps zsh git tmux kitty node nvim python memory claude opencode macos`.
+`system` installs build tools, zsh, `psql`, Rust and the Tauri libraries, Docker, kitty, clipboard tools and Flatpak on Linux; `apps` (Linux only) installs Nerd Fonts, Chrome Dev, the Flatpaks, gcloud and the AWS session-manager-plugin; `macos` only runs on macOS. Every module is idempotent; existing files are moved to `~/.dotfiles_backup/<timestamp>/` before being replaced by symlinks.
 
 ## Layout
 
 | Path | What |
 |---|---|
-| `Brewfile` / `Brewfile.extras` | Homebrew formulas (all OSes), casks and fonts (macOS) |
+| `Brewfile` / `Brewfile.full` / `Brewfile.extras` | Homebrew formulas (all OSes), casks and fonts (macOS). `Brewfile` is the core every profile gets, `--lite` skips `Brewfile.full` |
 | `linux/` | Flatpak app lists (`flatpaks.txt`, `flatpaks.extras.txt`) |
 | `bin/` | Helpers linked into `~/.local/bin` (`clipcopy`, `clippaste`, `claude-tmux`, `mac-maintenance`, `brew-daily-upgrade`) |
 | `zsh/` | `zshrc`, `p10k.zsh`, `zshrc.local.example` |
@@ -75,6 +93,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 - MCP servers `memory` (`http://127.0.0.1:8765/mcp`) and `playwright`, user scope, from `claude/mcp.json`. OpenCode gets the same two from `opencode/opencode.json`. The memory server comes from `./install.sh memory`.
 - RTK: `rtk init -g` adds the `rtk hook claude` PreToolUse hook (shell commands go through `rtk` to save tokens) and `~/.claude/RTK.md`. OpenCode uses `opencode/plugins/rtk.ts` for the same thing.
 - tmux-resurrect + tmux-continuum save the layout every 10 minutes and restore it when tmux starts; panes that were running Claude come back with `claude --resume` on the same conversation.
+- Every new terminal opens its own tmux session. Over SSH you land in a shared `ssh` session instead, so after a dropped connection you pick up where you left off.
 
 | Key | Action |
 |---|---|
@@ -90,6 +109,7 @@ Modules: `system brew apps zsh git tmux kitty nvim node python claude macos`.
 | `prefix N` | Toggle do-not-disturb (no desktop notifications) |
 | `prefix M-t` / `prefix M-v` | Tiled / lead + stack layout for agent teams |
 | `prefix Space` | Command palette (has all of the above, plus sync panes and the full key list) |
+| `F12` | Nested tmux (SSH into another machine with these dotfiles): turns this tmux's keys off so `prefix` reaches the inner one. The status bar shows `F12 ⇢ remote`; `F12` again turns them back on. On a Mac keyboard it's `fn+F12` |
 
 `prefix f`, `prefix E` and `prefix ?` replace tmux's find-window, spread-layout and list-keys (the key list is in the palette). Hooks only apply to Claude sessions started after `./install.sh claude`.
 
@@ -115,5 +135,5 @@ Never commit these; they are created on install and sourced automatically:
 - `gh auth login`, then add your SSH key and switch the remote: `git remote set-url origin git@github.com:JoanSernaLeiton/dotfiles.git`
 - Open tmux and press `prefix + I` if any plugin is missing
 - Open Neovim once so Mason installs the language servers
-- Linux: log out and back in so the `docker` group and zsh login shell take effect
+- Linux: log out and back in so the `docker` group and zsh login shell take effect; reboot after `--lite` so zram and the GPU switch apply
 - Linux: Cursor, Claude desktop and AWS VPN Client have no Flatpak; install them manually if needed

@@ -8,4 +8,3 @@ io.dbeaver.DBeaverCommunity
 com.getpostman.Postman
 com.bitwarden.desktop
 md.obsidian.Obsidian
-com.google.Chrome

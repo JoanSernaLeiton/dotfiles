@@ -2,5 +2,4 @@
 com.slack.Slack
 us.zoom.Zoom
 com.anydesk.Anydesk
-com.google.ChromeDev
 org.mozilla.firefox

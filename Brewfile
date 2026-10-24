@@ -18,10 +18,8 @@ brew "zoxide"                 # frecent dirs: `z`, and the tmux project picker (
 brew "bat"
 brew "fd"
 brew "ripgrep"
-brew "the_silver_searcher"
 brew "wget"
 brew "jq"
-brew "yq"
 brew "rtk"
 
 # ── Editor (Neovim + what the config shells out to) ──────────────────
@@ -38,29 +36,14 @@ brew "shfmt"
 # ── Languages & toolchains ───────────────────────────────────────────
 brew "fnm"
 brew "pnpm"
-brew "deno"
-brew "go"
-brew "python@3.14"
 brew "python@3.12"   # mcp-memory-service (needs SQLite extension loading, which uv's own Pythons lack)
 brew "uv"
-brew "pipx"
-brew "gcc"
-brew "cmake"
-brew "bazel"
 
 # ── Git hosting / cloud / infra ──────────────────────────────────────
 brew "gh"
-brew "glab"
-brew "awscli"
-brew "kubernetes-cli"
-brew "libpq"
+brew "flyctl"
+brew "opentofu"
 brew "anomalyco/tap/opencode"
-
-# ── Misc utilities ───────────────────────────────────────────────────
-brew "ghostscript"
-brew "graphicsmagick"
-brew "poppler"
-brew "wakeonlan"
 
 if OS.mac?
   tap "hudochenkov/sshpass"
@@ -68,27 +51,14 @@ if OS.mac?
   brew "reattach-to-user-namespace"
   brew "duti"
   brew "terminal-notifier"   # clickable Claude Code notifications (bin/claude-tmux)
+  brew "rust"
+  brew "libpq"
 
   # ── Apps ─────────────────────────────────────────────────────────────
   cask "kitty"
   cask "orbstack"
-  cask "cursor"
-  cask "webstorm"
-  cask "dbeaver-community"
-  cask "postman"
-  cask "claude"
-  cask "bitwarden"
-  cask "rectangle"
-  cask "obsidian"
   cask "google-chrome@dev"
-  cask "gcloud-cli"
-  cask "session-manager-plugin"
-  cask "aws-vpn-client"
 
   # ── Fonts ────────────────────────────────────────────────────────────
-  cask "font-fira-code"
   cask "font-fira-code-nerd-font"
-  cask "font-jetbrains-mono"
-  cask "font-meslo-lg-nerd-font"
-  cask "font-iosevka"
 end
