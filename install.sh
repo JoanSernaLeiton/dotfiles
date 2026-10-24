@@ -551,7 +551,24 @@ install_macos() {
         return
     fi
     "$DOTFILES/macos.sh"
+    install_maintenance_agent
     success "macos done"
+}
+
+install_maintenance_agent() {
+    local label=com.joan.mac-maintenance
+    local plist="$HOME/Library/LaunchAgents/$label.plist" rendered_plist
+    symlink "$DOTFILES/bin/mac-maintenance" "$HOME/.local/bin/mac-maintenance"
+    rendered_plist="$(mktemp)"
+    sed "s#__HOME__#$HOME#g" "$DOTFILES/maintenance/$label.plist" > "$rendered_plist"
+    mkdir -p "$(dirname "$plist")"
+    if ! cmp -s "$rendered_plist" "$plist"; then
+        mv "$rendered_plist" "$plist"
+        launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+    else
+        rm -f "$rendered_plist"
+    fi
+    launchctl print "gui/$(id -u)/$label" &>/dev/null || launchctl bootstrap "gui/$(id -u)" "$plist"
 }
 
 # ── Module Runner ────────────────────────────────────────────────────
@@ -584,7 +601,7 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
   memory  - Shared memory MCP server (mcp-memory-service on :8765, launchd/systemd) for Claude and OpenCode
   claude  - Claude Code CLI + tmux hooks, status line, agent-team panes, MCPs (memory, playwright), rtk hook
   opencode - OpenCode CLI + config (model, MCPs, AGENTS.md) + rtk and tmux plugins
-  macos   - macOS system defaults (macos.sh; skipped elsewhere)
+  macos   - macOS system defaults (macos.sh) + weekly mac-maintenance launch agent (skipped elsewhere)
 
 Usage:
   ./install.sh                  # Install everything

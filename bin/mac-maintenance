@@ -1,0 +1,306 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export HOMEBREW_NO_AUTO_UPDATE=1
+
+readonly MAXIMUM_CACHE_AGE_IN_DAYS=7
+readonly UV_CACHE_PRUNE_TIMEOUT_SECONDS=300
+readonly UPTIME_DAYS_BEFORE_RESTART_WARNING=7
+readonly SWAP_USAGE_PERCENT_WARNING=50
+readonly MINIMUM_FREE_DISK_GIGABYTES=50
+readonly STRAY_PROCESS_MINIMUM_AGE_IN_DAYS=3
+readonly STRAY_PROCESS_PATTERN='http\.server|( |/)say |chrome-headless-shell|playwright-mcp|playwright_chromium|( |/)nvim( |$)|( |/)bfs '
+readonly BROWSER_AUTOMATION_PROCESS_PATTERN='playwright-mcp|playwright_chromium'
+readonly MAXIMUM_ANCESTOR_LEVELS_TO_LIVE_CLAUDE_SESSION=4
+readonly MAXIMUM_PROCESS_COMMAND_LENGTH=110
+readonly IDLE_CONTAINER_LOG_WINDOW_IN_HOURS=72
+readonly IDLE_CLAUDE_SESSION_MINIMUM_DAYS=2
+readonly SECONDS_PER_DAY=86400
+readonly CLAUDE_SCRATCHPAD_ROOT="/private/tmp/claude-$(id -u)"
+readonly CLAUDE_LIVE_SESSIONS_DIRECTORY="$HOME/.claude/sessions"
+readonly CLAUDE_TRANSCRIPTS_DIRECTORY="$HOME/.claude/projects"
+readonly CHROME_STABLE_APPLICATION="/Applications/Google Chrome.app"
+readonly LOGI_TUNE_APPLICATION="/Applications/Logi Tune.app"
+readonly REPORTS_DIRECTORY="$HOME/Library/Logs/mac-maintenance"
+readonly REPORT_FILE="$REPORTS_DIRECTORY/reporte-$(date +%Y-%m-%d).md"
+readonly NOTIFICATION_TITLE="Mantenimiento Mac"
+
+warnings=()
+cleanup_results=()
+uptime_in_days=0
+swap_total_megabytes=0
+swap_used_megabytes=0
+swap_usage_percent=0
+memory_free_percent=""
+free_disk_gigabytes=0
+stray_processes_table=""
+idle_docker_containers=""
+idle_claude_sessions=""
+
+print_usage() {
+    echo "Usage: mac-maintenance [--report-only]"
+    echo "  Weekly safe cleanup (Docker build cache older than $MAXIMUM_CACHE_AGE_IN_DAYS days, dangling images,"
+    echo "  brew cleanup, uv cache, stale Claude scratchpads) plus a health report and a macOS notification."
+    echo "  --report-only  only writes the report and notifies, nothing is deleted"
+}
+
+count_lines() {
+    if [[ -z "$1" ]]; then echo 0; else grep -c '' <<< "$1"; fi
+}
+
+docker_is_running() {
+    docker info >/dev/null 2>&1
+}
+
+list_live_claude_session_identifiers() {
+    local session_file process_identifier
+    for session_file in "$CLAUDE_LIVE_SESSIONS_DIRECTORY"/*.json; do
+        [[ -f "$session_file" ]] || continue
+        process_identifier="$(basename "$session_file" .json)"
+        kill -0 "$process_identifier" 2>/dev/null || continue
+        jq -r '.sessionId' "$session_file"
+    done
+}
+
+clean_docker_caches() {
+    if ! docker_is_running; then
+        cleanup_results+=("Docker: no estaba abierto, no se limpió")
+        return
+    fi
+    local build_cache_summary dangling_images_summary
+    build_cache_summary="$(docker builder prune --force --filter "until=$((MAXIMUM_CACHE_AGE_IN_DAYS * 24))h" 2>&1 | tail -1)"
+    dangling_images_summary="$(docker image prune --force 2>&1 | tail -1)"
+    cleanup_results+=("Docker, caché de build: ${build_cache_summary//$'\t'/ }")
+    cleanup_results+=("Docker, imágenes huérfanas: $dangling_images_summary")
+}
+
+clean_homebrew_cache() {
+    local homebrew_summary
+    homebrew_summary="$(brew cleanup --prune="$MAXIMUM_CACHE_AGE_IN_DAYS" 2>&1 | grep -o 'freed approximately [^ ]*' | tail -1)"
+    cleanup_results+=("Homebrew: ${homebrew_summary:-nada que limpiar}")
+}
+
+clean_uv_cache() {
+    local uv_summary
+    uv_summary="$(timeout "$UV_CACHE_PRUNE_TIMEOUT_SECONDS" uv cache prune 2>&1 | tail -1)"
+    cleanup_results+=("uv: ${uv_summary:-nada que limpiar}")
+}
+
+remove_stale_claude_scratchpads() {
+    local live_session_identifiers session_directory session_identifier directory_kilobytes
+    local freed_kilobytes=0 removed_directory_count=0
+    live_session_identifiers="$(list_live_claude_session_identifiers)"
+    for session_directory in "$CLAUDE_SCRATCHPAD_ROOT"/*/*/; do
+        [[ -d "$session_directory" ]] || continue
+        session_identifier="$(basename "$session_directory")"
+        grep -qx "$session_identifier" <<< "$live_session_identifiers" && continue
+        [[ -n "$(find "$session_directory" -mtime -"$MAXIMUM_CACHE_AGE_IN_DAYS" -print -quit 2>/dev/null)" ]] && continue
+        directory_kilobytes="$(du -sk "$session_directory" | cut -f1)"
+        if rm -rf "$session_directory"; then
+            freed_kilobytes=$((freed_kilobytes + directory_kilobytes))
+            removed_directory_count=$((removed_directory_count + 1))
+        fi
+    done
+    find "$CLAUDE_SCRATCHPAD_ROOT" -mindepth 1 -maxdepth 1 -type d -empty -delete 2>/dev/null
+    cleanup_results+=("Temporales de Claude: $removed_directory_count carpetas, $((freed_kilobytes / 1024)) MB")
+}
+
+calculate_uptime_in_days() {
+    local boot_epoch_seconds
+    boot_epoch_seconds="$(sysctl -n kern.boottime | sed -E 's/^\{ sec = ([0-9]+),.*/\1/')"
+    echo $(( ($(date +%s) - boot_epoch_seconds) / SECONDS_PER_DAY ))
+}
+
+evaluate_system_health() {
+    uptime_in_days="$(calculate_uptime_in_days)"
+    read -r swap_total_megabytes swap_used_megabytes <<< "$(sysctl -n vm.swapusage | sed -E 's/total = ([0-9.]+)M +used = ([0-9.]+)M.*/\1 \2/')"
+    swap_usage_percent="$(awk -v used="$swap_used_megabytes" -v total="$swap_total_megabytes" 'BEGIN { if (total > 0) printf "%d", used * 100 / total; else print 0 }')"
+    memory_free_percent="$(memory_pressure | awk -F': ' '/free percentage/ {print $2}')"
+    free_disk_gigabytes="$(df -g / | awk 'NR == 2 {print $4}')"
+    if (( uptime_in_days >= UPTIME_DAYS_BEFORE_RESTART_WARNING )); then
+        warnings+=("Lleva $uptime_in_days días sin reiniciar. Reinicie cuando los agentes terminen.")
+    fi
+    if (( swap_usage_percent >= SWAP_USAGE_PERCENT_WARNING )); then
+        warnings+=("El swap está al $swap_usage_percent %. Reiniciar lo libera.")
+    fi
+    if (( free_disk_gigabytes < MINIMUM_FREE_DISK_GIGABYTES )); then
+        warnings+=("Quedan $free_disk_gigabytes GB libres en disco.")
+    fi
+}
+
+logi_tune_is_installed() {
+    [[ -d "$LOGI_TUNE_APPLICATION" ]] \
+        || compgen -G "$HOME/Library/LaunchAgents/com.logitech.logitune*.plist" >/dev/null \
+        || compgen -G "/Library/LaunchAgents/com.logitech.logitune*.plist" >/dev/null \
+        || compgen -G "/Library/LaunchDaemons/com.logitech.logitune*.plist" >/dev/null
+}
+
+check_unwanted_software() {
+    if [[ -d "$CHROME_STABLE_APPLICATION" ]]; then
+        warnings+=("Chrome estable volvió a instalarse. Debe quedar solo Chrome Dev: sudo mv '$CHROME_STABLE_APPLICATION' ~/.Trash/")
+    fi
+    if logi_tune_is_installed; then
+        warnings+=("Logi Tune volvió a instalarse.")
+    fi
+    local disabled_launch_labels updater_plist updater_label
+    disabled_launch_labels="$(launchctl print-disabled "gui/$(id -u)")"
+    for updater_plist in "$HOME"/Library/LaunchAgents/com.google.*.plist; do
+        [[ -f "$updater_plist" ]] || continue
+        updater_label="$(basename "$updater_plist" .plist)"
+        if ! grep -q "\"$updater_label\" => disabled" <<< "$disabled_launch_labels"; then
+            warnings+=("El updater de Google $updater_label quedó activo.")
+        fi
+    done
+}
+
+process_belongs_to_live_claude_session() {
+    local ancestor_process_identifier="$1" ancestor_level
+    for (( ancestor_level = 0; ancestor_level < MAXIMUM_ANCESTOR_LEVELS_TO_LIVE_CLAUDE_SESSION; ancestor_level++ )); do
+        (( ancestor_process_identifier > 1 )) || return 1
+        [[ "$(ps -o comm= -p "$ancestor_process_identifier")" == *claude* ]] && return 0
+        ancestor_process_identifier="$(ps -o ppid= -p "$ancestor_process_identifier" | tr -d ' ')"
+        [[ -n "$ancestor_process_identifier" ]] || return 1
+    done
+    return 1
+}
+
+list_stray_processes() {
+    local process_identifier parent_process_identifier elapsed_time resident_kilobytes process_command age_in_days
+    ps -Ao pid=,ppid=,etime=,rss=,command= | grep -E "$STRAY_PROCESS_PATTERN" | grep -v -e Helper -e 'grep -E' \
+        | while read -r process_identifier parent_process_identifier elapsed_time resident_kilobytes process_command; do
+            if [[ "$process_command" =~ $BROWSER_AUTOMATION_PROCESS_PATTERN ]] && process_belongs_to_live_claude_session "$parent_process_identifier"; then
+                continue
+            fi
+            age_in_days=0
+            [[ "$elapsed_time" == *-* ]] && age_in_days=$((10#${elapsed_time%%-*}))
+            if (( age_in_days >= STRAY_PROCESS_MINIMUM_AGE_IN_DAYS || parent_process_identifier == 1 )); then
+                process_command="${process_command:0:$MAXIMUM_PROCESS_COMMAND_LENGTH}"
+                printf '| %s | %s | %s | `%s` |\n' "$process_identifier" "$age_in_days" "$((resident_kilobytes / 1024))" "${process_command//|/\\|}"
+            fi
+        done
+}
+
+list_idle_docker_containers() {
+    docker_is_running || return
+    local container_name
+    docker ps --format '{{.Names}}' | while read -r container_name; do
+        if [[ -z "$(docker logs --since "${IDLE_CONTAINER_LOG_WINDOW_IN_HOURS}h" --tail 1 "$container_name" 2>&1)" ]]; then
+            echo "- $container_name"
+        fi
+    done
+}
+
+list_idle_claude_sessions() {
+    local session_file process_identifier session_identifier session_working_directory transcript_file idle_days
+    for session_file in "$CLAUDE_LIVE_SESSIONS_DIRECTORY"/*.json; do
+        [[ -f "$session_file" ]] || continue
+        process_identifier="$(basename "$session_file" .json)"
+        kill -0 "$process_identifier" 2>/dev/null || continue
+        session_identifier="$(jq -r '.sessionId' "$session_file")"
+        session_working_directory="$(jq -r '.cwd' "$session_file")"
+        transcript_file="$(find "$CLAUDE_TRANSCRIPTS_DIRECTORY" -maxdepth 2 -name "$session_identifier.jsonl" -print -quit)"
+        [[ -n "$transcript_file" ]] || continue
+        idle_days=$(( ($(date +%s) - $(stat -f %m "$transcript_file")) / SECONDS_PER_DAY ))
+        if (( idle_days >= IDLE_CLAUDE_SESSION_MINIMUM_DAYS )); then
+            echo "- pid $process_identifier en $session_working_directory: sin uso hace $idle_days días"
+        fi
+    done
+}
+
+collect_leftover_findings() {
+    local stray_process_count idle_container_count idle_session_count
+    stray_processes_table="$(list_stray_processes)"
+    idle_docker_containers="$(list_idle_docker_containers)"
+    idle_claude_sessions="$(list_idle_claude_sessions)"
+    stray_process_count="$(count_lines "$stray_processes_table")"
+    idle_container_count="$(count_lines "$idle_docker_containers")"
+    idle_session_count="$(count_lines "$idle_claude_sessions")"
+    (( stray_process_count > 0 )) && warnings+=("$stray_process_count procesos sueltos de agentes. Revise si alguno sigue en uso.")
+    (( idle_container_count > 0 )) && warnings+=("$idle_container_count contenedores sin actividad en $IDLE_CONTAINER_LOG_WINDOW_IN_HOURS horas.")
+    (( idle_session_count > 0 )) && warnings+=("$idle_session_count sesiones de Claude sin uso hace $IDLE_CLAUDE_SESSION_MINIMUM_DAYS días o más.")
+    return 0
+}
+
+print_bullet_list_or_placeholder() {
+    local placeholder_text="$1"
+    shift
+    if (( $# == 0 )); then
+        echo "- $placeholder_text"
+    else
+        printf -- '- %s\n' "$@"
+    fi
+}
+
+write_report() {
+    mkdir -p "$REPORTS_DIRECTORY"
+    {
+        echo "# $NOTIFICATION_TITLE · $(date '+%Y-%m-%d %H:%M')"
+        echo
+        echo "## Avisos"
+        print_bullet_list_or_placeholder "Todo en orden." ${warnings[@]+"${warnings[@]}"}
+        echo
+        echo "## Limpieza"
+        print_bullet_list_or_placeholder "Solo reporte, no se borró nada." ${cleanup_results[@]+"${cleanup_results[@]}"}
+        echo
+        echo "## Estado"
+        echo "- Días encendida: $uptime_in_days"
+        echo "- Swap: $swap_used_megabytes de $swap_total_megabytes MB ($swap_usage_percent %)"
+        echo "- Memoria libre: $memory_free_percent"
+        echo "- Disco libre: $free_disk_gigabytes GB"
+        echo
+        echo "## Procesos sueltos (más de $STRAY_PROCESS_MINIMUM_AGE_IN_DAYS días o huérfanos)"
+        if [[ -z "$stray_processes_table" ]]; then
+            echo "- Ninguno."
+        else
+            echo "| PID | Días | MB | Proceso |"
+            echo "| --- | --- | --- | --- |"
+            echo "$stray_processes_table"
+        fi
+        echo
+        echo "## Contenedores sin logs en $IDLE_CONTAINER_LOG_WINDOW_IN_HOURS horas"
+        echo "${idle_docker_containers:-- Ninguno.}"
+        echo
+        echo "## Sesiones de Claude sin uso hace $IDLE_CLAUDE_SESSION_MINIMUM_DAYS días o más"
+        echo "${idle_claude_sessions:-- Ninguna.}"
+    } > "$REPORT_FILE"
+}
+
+send_notification() {
+    local notification_message
+    if (( ${#warnings[@]} == 0 )); then
+        notification_message="Todo en orden."
+    else
+        notification_message="${#warnings[@]} avisos. ${warnings[0]}"
+    fi
+    osascript \
+        -e 'on run notificationArguments' \
+        -e 'display notification (item 1 of notificationArguments) with title (item 2 of notificationArguments) subtitle (item 3 of notificationArguments)' \
+        -e 'end run' \
+        "$notification_message" "$NOTIFICATION_TITLE" "Detalle en ~/Library/Logs/mac-maintenance" >/dev/null
+}
+
+main() {
+    local should_run_cleanup=true
+    case "${1:-}" in
+        "") ;;
+        --report-only) should_run_cleanup=false ;;
+        -h | --help) print_usage; return 0 ;;
+        *) print_usage; return 1 ;;
+    esac
+    if [[ "$should_run_cleanup" == true ]]; then
+        clean_docker_caches
+        clean_homebrew_cache
+        clean_uv_cache
+        remove_stale_claude_scratchpads
+    fi
+    evaluate_system_health
+    check_unwanted_software
+    collect_leftover_findings
+    write_report
+    send_notification
+    echo "$(date '+%Y-%m-%d %H:%M') report written to $REPORT_FILE"
+}
+
+main "$@"
