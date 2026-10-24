@@ -149,6 +149,8 @@ CHROME_DEV_DEBIAN_PACKAGE_URL="https://dl.google.com/linux/direct/google-chrome-
 CHROME_DEV_FEDORA_PACKAGE_URL="https://dl.google.com/linux/direct/google-chrome-unstable_current_x86_64.rpm"
 CHROME_DEV_EXECUTABLE=/opt/google/chrome-unstable/chrome
 TMUX_THUMBS_PLUGIN_DIRECTORY="$HOME/.tmux/plugins/tmux-thumbs"
+LAZY_NVIM_REPOSITORY_URL="https://github.com/folke/lazy.nvim.git"
+LAZY_NVIM_PLUGIN_DIRECTORY="$HOME/.local/share/nvim/lazy/lazy.nvim"
 XFCE_TERMINAL_SHORTCUT_PROPERTY="/commands/custom/<Primary><Alt>t"
 BREWFILE_THIRD_PARTY_TAPS=(anomalyco/tap)
 MACOS_BREWFILE_THIRD_PARTY_TAPS=(hudochenkov/sshpass)
@@ -434,6 +436,7 @@ install_zsh() {
     info "── zsh ──"
     symlink "$DOTFILES/zsh/zshrc" "$HOME/.zshrc"
     symlink "$DOTFILES/zsh/p10k.zsh" "$HOME/.p10k.zsh"
+    symlink "$DOTFILES/zsh/zshenv" "$HOME/.zshenv"
     if [[ ! -f "$HOME/.zshrc.local" ]]; then
         cp "$DOTFILES/zsh/zshrc.local.example" "$HOME/.zshrc.local"
         success "Created ~/.zshrc.local (private, untracked)"
@@ -531,12 +534,29 @@ install_nvim() {
         eval "$(fnm env --shell bash)"
     fi
     if command -v nvim &>/dev/null; then
+        pin_lazy_nvim_to_locked_commit
         info "Installing Neovim plugins at locked versions..."
         nvim --headless "+Lazy! restore" +qa || warn "Lazy restore failed; open nvim and run :Lazy restore"
     else
         warn "nvim not found; run './install.sh brew' first"
     fi
     success "nvim done"
+}
+
+pin_lazy_nvim_to_locked_commit() {
+    local locked_lazy_nvim_commit
+    locked_lazy_nvim_commit="$(jq -r '."lazy.nvim".commit // empty' "$DOTFILES/nvim/lazy-lock.json" 2>/dev/null || true)"
+    if [[ -z "$locked_lazy_nvim_commit" ]]; then
+        return
+    fi
+    if [[ ! -d "$LAZY_NVIM_PLUGIN_DIRECTORY/.git" ]]; then
+        git clone --quiet --filter=blob:none "$LAZY_NVIM_REPOSITORY_URL" "$LAZY_NVIM_PLUGIN_DIRECTORY" || return
+    fi
+    if ! git -C "$LAZY_NVIM_PLUGIN_DIRECTORY" cat-file -e "$locked_lazy_nvim_commit^{commit}" 2>/dev/null; then
+        git -C "$LAZY_NVIM_PLUGIN_DIRECTORY" fetch --quiet origin || true
+    fi
+    git -C "$LAZY_NVIM_PLUGIN_DIRECTORY" checkout --quiet "$locked_lazy_nvim_commit" \
+        || warn "Could not pin lazy.nvim to $locked_lazy_nvim_commit; nvim/lazy-lock.json may change"
 }
 
 install_node() {
@@ -777,7 +797,7 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
             Docker (buildx, log rotation), kitty, clipboard, Flatpak (native pkg manager)
   brew    - Homebrew (macOS & Linux) + Brewfile and Brewfile.full (CLI tools; casks/fonts on macOS)
   apps    - Linux only: Nerd Fonts, Chrome Dev (Playwright MCP), Flatpak apps, gcloud, AWS session-manager-plugin
-  zsh     - zshrc + p10k + ~/.zshrc.local + bin/ helpers
+  zsh     - zshrc + zshenv + p10k + ~/.zshrc.local + bin/ helpers
   git     - gitconfig + global gitignore + ~/.gitconfig.local (email)
   tmux    - tmux.conf + TPM + plugins
   kitty   - kitty config + theme

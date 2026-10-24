@@ -1,0 +1,14 @@
+if [[ -o interactive ]]; then
+  return
+fi
+
+if [[ -z $HOMEBREW_PREFIX ]]; then
+  for homebrew_executable in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
+    if [[ -x $homebrew_executable ]]; then eval "$($homebrew_executable shellenv)"; break; fi
+  done
+  unset homebrew_executable
+fi
+
+typeset -U path
+path=($HOME/.local/bin $HOME/.cargo/bin $path)
+export PATH
