@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+
+readonly APP_STORE_AGENT_PROCESS_NAME="appstoreagent"
+readonly APP_STORE_AGENT_CPU_PERCENT_THRESHOLD=40
+readonly APP_STORE_AGENT_CONSECUTIVE_HIGH_CHECKS_BEFORE_RESTART=3
+readonly AUTO_EJECTED_VOLUME_NAMES=("INSTANTVIEW")
+readonly WATCHDOG_STATE_DIRECTORY="$HOME/Library/Application Support/mac-process-watchdog"
+readonly APP_STORE_AGENT_HIGH_CHECKS_FILE="$WATCHDOG_STATE_DIRECTORY/appstoreagent-consecutive-high-checks"
+readonly WATCHDOG_LOG_FILE="$HOME/Library/Logs/mac-process-watchdog.log"
+readonly NOTIFICATION_TITLE="Vigilante Mac"
+
+log_watchdog_event() {
+  local event_description="$1"
+  printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$event_description" >> "$WATCHDOG_LOG_FILE"
+}
+
+notify_user() {
+  local notification_message="$1"
+  osascript -e "display notification \"$notification_message\" with title \"$NOTIFICATION_TITLE\"" 2>/dev/null || true
+}
+
+read_app_store_agent_cpu_percent() {
+  ps -Ao pcpu=,comm= | awk -v process_name="$APP_STORE_AGENT_PROCESS_NAME" '
+    $2 ~ process_name "$" { total_cpu_percent += $1 }
+    END { printf "%d", total_cpu_percent }
+  '
+}
+
+read_consecutive_high_checks() {
+  if [[ -r "$APP_STORE_AGENT_HIGH_CHECKS_FILE" ]]; then
+    cat "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
+  else
+    echo 0
+  fi
+}
+
+write_consecutive_high_checks() {
+  local consecutive_high_checks="$1"
+  printf '%s' "$consecutive_high_checks" > "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
+}
+
+restart_app_store_agent_when_stuck() {
+  local current_cpu_percent consecutive_high_checks
+  current_cpu_percent="$(read_app_store_agent_cpu_percent)"
+  consecutive_high_checks="$(read_consecutive_high_checks)"
+
+  if (( current_cpu_percent < APP_STORE_AGENT_CPU_PERCENT_THRESHOLD )); then
+    write_consecutive_high_checks 0
+    return
+  fi
+
+  consecutive_high_checks=$(( consecutive_high_checks + 1 ))
+  if (( consecutive_high_checks < APP_STORE_AGENT_CONSECUTIVE_HIGH_CHECKS_BEFORE_RESTART )); then
+    write_consecutive_high_checks "$consecutive_high_checks"
+    return
+  fi
+
+  if killall "$APP_STORE_AGENT_PROCESS_NAME" 2>/dev/null; then
+    log_watchdog_event "appstoreagent reiniciado tras ${consecutive_high_checks} chequeos seguidos sobre ${APP_STORE_AGENT_CPU_PERCENT_THRESHOLD}% de CPU (último ${current_cpu_percent}%)"
+    notify_user "appstoreagent estaba pegado (${current_cpu_percent}% CPU), lo reinicié"
+  else
+    log_watchdog_event "no se pudo reiniciar appstoreagent (${current_cpu_percent}% CPU)"
+  fi
+  write_consecutive_high_checks 0
+}
+
+eject_auto_ejected_volumes() {
+  local volume_name volume_path
+  for volume_name in "${AUTO_EJECTED_VOLUME_NAMES[@]}"; do
+    volume_path="/Volumes/$volume_name"
+    [[ -d "$volume_path" ]] || continue
+    if diskutil eject "$volume_path" >/dev/null 2>&1; then
+      log_watchdog_event "volumen $volume_name expulsado"
+    else
+      log_watchdog_event "no se pudo expulsar el volumen $volume_name"
+    fi
+  done
+}
+
+main() {
+  mkdir -p "$WATCHDOG_STATE_DIRECTORY" "$(dirname "$WATCHDOG_LOG_FILE")"
+  restart_app_store_agent_when_stuck
+  eject_auto_ejected_volumes
+}
+
+main "$@"
