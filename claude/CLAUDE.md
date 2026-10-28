@@ -17,11 +17,11 @@ The `memory` MCP server (http://127.0.0.1:8765/mcp) is shared with OpenCode. Use
 
 # GitHub polling rule (STRICT)
 
-Joan's GitHub API quota is shared with his release workflows; too many queries get it blocked.
+Joan's GitHub API quota is shared with his release workflows; bursts of queries get it blocked.
 
-- At most **one GitHub query every 60 seconds** while waiting on CI, checks, runs or releases.
-- One `gh` call per check, then `sleep 60`. Run it in the background: `until ! gh pr checks N | grep -qE "pending|queued|in_progress"; do sleep 60; done`.
-- Never a tight loop, never several `gh` calls per iteration, and no ad-hoc `gh` checks while a poll is running.
+- What matters is concurrency, not spacing: at most **3–4 `gh` calls at the same time** across all agents. Never bursts of dozens of calls (e.g. 50 in a loop).
+- Sequential calls are fine without waiting between them; for bulk work (many issues), run them one or a few at a time, never fan out dozens in parallel.
+- When polling CI, checks, runs or releases, still sleep between checks in the background: `until ! gh pr checks N | grep -qE "pending|queued|in_progress"; do sleep 60; done`. Never a tight loop.
 - On "API rate limit exceeded": check `gh api rate_limit` once and wait for the reset.
 
 # Self-documenting code rule (STRICT)
