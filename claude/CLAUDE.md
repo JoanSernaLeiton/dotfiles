@@ -14,6 +14,8 @@ The `memory` MCP server (http://127.0.0.1:8765/mcp) is shared with OpenCode. Use
 2. **After** finishing a search, investigation, or implementation, and **any time you find something worth knowing** (root cause, decision, gotcha, file location, command that worked, config, user preference): save it with `memory_store`. One fact per memory, include the project name, concrete paths/commands, and the why.
 3. Before storing, check the search results for an existing memory on the same topic; update it (`memory_update`) instead of creating a duplicate.
 4. Never store secrets, tokens, or passwords.
+5. Every error, confusion, or misunderstanding (mine, a subagent's, or a wrong assumption) gets recorded the moment it's detected with `mistake_note_add` (incorrect action + correct action). Before each task, also run `mistake_note_search` on the topic.
+6. Before creating or asking Joan for any credential or infrastructure resource, check whether it already exists (local env files, tofu, the provider's console) and test it for real.
 
 # GitHub polling rule (STRICT)
 
