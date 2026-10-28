@@ -130,11 +130,13 @@ cmd_hook() {
             exit 0
             ;;
         PreToolUse)
+            deny_when_budget_blocked "$pane"
             # Remember what Claude is about to do, so a permission prompt can say what it's for
             t set -p -t "$pane" @claude_tool "$(jq -r "$TOOL_SUMMARY" <<<"$input" | cut -c1-200)" 2>/dev/null
             exit 0
             ;;
         UserPromptSubmit)
+            deny_when_budget_blocked "$pane"
             state=working
             save_conversation "$pane" "$sid"
             ;;
@@ -408,9 +410,15 @@ cmd_statusline() {
           (.cost.total_cost_usd // empty | "$\(. * 100 | round / 100)")
         ] | join(" · ")' <<<"$input" 2>/dev/null)"
     if [[ -n "${TMUX_PANE:-}" && -n "${TMUX:-}" ]]; then
-        t set -p -t "$TMUX_PANE" @claude_ctx "$(jq -r '
+        local total_cost_usd budget_usd budget_state budget_suffix=""
+        total_cost_usd="$(jq -r '.cost.total_cost_usd // empty | . * 100 | round / 100' <<<"$input" 2>/dev/null)"
+        [[ -n "$total_cost_usd" ]] && evaluate_pane_budget "$TMUX_PANE" "$total_cost_usd"
+        IFS='|' read -r budget_usd budget_state < <(run_tmux display -p -t "$TMUX_PANE" '#{@claude_budget_usd}|#{@claude_budget_state}' 2>/dev/null)
+        [[ -n "$budget_usd" ]] && budget_suffix="/\$$budget_usd"
+        [[ "$budget_state" == blocked ]] && budget_suffix+=" ⛔"
+        t set -p -t "$TMUX_PANE" @claude_ctx "$(jq -r --arg budget_suffix "$budget_suffix" '
             [ (.context_window.used_percentage // empty | "\(floor)%"),
-              (.cost.total_cost_usd // empty | "$\(. * 100 | round / 100)") ] | join(" · ")' <<<"$input" 2>/dev/null)" 2>/dev/null
+              (.cost.total_cost_usd // empty | "$\(. * 100 | round / 100)" + $budget_suffix) ] | join(" · ")' <<<"$input" 2>/dev/null)" 2>/dev/null
     fi
     echo "$line"
 }
@@ -429,7 +437,185 @@ cmd_resume() {
     fi
 }
 
+BUDGET_WARNING_PERCENT="${CLAUDE_TMUX_BUDGET_WARNING_PERCENT:-80}"
+BUDGET_RAISE_STEP_USD="${CLAUDE_TMUX_BUDGET_RAISE_STEP_USD:-5}"
+PROJECT_TEAM_CONFIGURATION_PATH=".claude-tmux/team.json"
+USER_TEAM_CONFIGURATION_PATH="${XDG_CONFIG_HOME:-$HOME/.config}/claude-tmux/team.json"
+
+read -r -d '' DEFAULT_TEAM_CONFIGURATION <<'JSON'
+{
+  "budgetUsd": 5,
+  "sharedPrompt": "You work in a small software team inside tmux. Before starting, call memory_search on the memory MCP with the project name and the topic. After finishing, store durable findings with memory_store, tagged project:<project> and role:<role>. Hand work over as short written artifacts: a ticket, a decision, a test report. Never paste long chat history.",
+  "roles": [
+    {
+      "name": "tl",
+      "model": "opus",
+      "worktree": false,
+      "prompt": "You are the tech lead. Split the request into small independent tickets, assign each one to a developer, review their branches, then rebase and merge. You own architecture decisions; developers do not."
+    },
+    {
+      "name": "dev",
+      "model": "sonnet",
+      "worktree": true,
+      "count": 1,
+      "prompt": "You are a developer. Work only on the ticket you were given, inside your own worktree. Make small commits and report what changed and how to verify it."
+    },
+    {
+      "name": "qa",
+      "model": "sonnet",
+      "worktree": false,
+      "prompt": "You are QA with a clean context. Review the developer branch against the ticket acceptance criteria, write and run tests, and report defects. Never edit production code."
+    }
+  ]
+}
+JSON
+
+run_tmux() { "$TMUX_BIN" "$@"; }
+
+resolve_team_configuration() {
+    local project_directory="$1" configuration_path
+    for configuration_path in "$project_directory/$PROJECT_TEAM_CONFIGURATION_PATH" "$USER_TEAM_CONFIGURATION_PATH"; do
+        if [[ -f "$configuration_path" ]]; then
+            cat "$configuration_path"
+            return
+        fi
+    done
+    printf '%s' "$DEFAULT_TEAM_CONFIGURATION"
+}
+
+ensure_project_team_configuration() {
+    local project_directory="$1"
+    local project_configuration_path="$project_directory/$PROJECT_TEAM_CONFIGURATION_PATH"
+    [[ -f "$project_configuration_path" ]] && return 0
+    local inherited_team_configuration
+    inherited_team_configuration="$(resolve_team_configuration "$project_directory")"
+    mkdir -p "$(dirname "$project_configuration_path")"
+    printf '%s\n' "$inherited_team_configuration" > "$project_configuration_path"
+    run_tmux display-message "Created $PROJECT_TEAM_CONFIGURATION_PATH with the default team" 2>/dev/null
+}
+
+build_role_launch_command() {
+    local model="$1" window_name="$2" full_prompt="$3" uses_worktree="$4"
+    local launch_command="claude --model $(printf '%q' "$model") --name $(printf '%q' "$window_name")"
+    launch_command+=" --append-system-prompt $(printf '%q' "$full_prompt")"
+    [[ "$uses_worktree" == true ]] && launch_command+=" --worktree $(printf '%q' "$window_name")"
+    printf '%s' "$launch_command"
+}
+
+open_role_window() {
+    local session_name="$1" project_directory="$2" window_name="$3" role_name="$4" budget_usd="$5" launch_command="$6"
+    local pane_identifier
+    if run_tmux has-session -t "=$session_name" 2>/dev/null; then
+        pane_identifier="$(run_tmux new-window -d -P -F '#{pane_id}' -t "=$session_name:" -c "$project_directory" -n "$window_name")"
+    else
+        pane_identifier="$(run_tmux new-session -d -P -F '#{pane_id}' -s "$session_name" -c "$project_directory" -n "$window_name")"
+    fi
+    run_tmux set -p -t "$pane_identifier" @claude_role "$role_name" \; \
+        set -p -t "$pane_identifier" @claude_budget_usd "$budget_usd" \; \
+        set -p -t "$pane_identifier" @claude_budget_state ok
+    run_tmux send-keys -t "$pane_identifier" "$launch_command" Enter
+}
+
+cmd_team_up() {
+    local project_directory="${1:-$PWD}"
+    project_directory="$(cd "$project_directory" && pwd)" || return 1
+    local project_name session_name team_configuration shared_prompt default_budget_usd role_definition
+    project_name="$(session_name_for "$project_directory")"
+    session_name="$project_name-team"
+    ensure_project_team_configuration "$project_directory"
+    team_configuration="$(resolve_team_configuration "$project_directory")"
+    jq -e '.roles | length > 0' <<<"$team_configuration" >/dev/null 2>&1 || {
+        run_tmux display-message "Invalid team configuration: no roles defined"
+        return 1
+    }
+    shared_prompt="$(jq -r '.sharedPrompt // ""' <<<"$team_configuration")"
+    default_budget_usd="$(jq -r '.budgetUsd // 5' <<<"$team_configuration")"
+
+    if ! run_tmux has-session -t "=$session_name" 2>/dev/null; then
+        while IFS= read -r role_definition; do
+            local role_name role_model role_budget_usd uses_worktree role_count role_prompt role_index window_name full_prompt
+            role_name="$(jq -r '.name' <<<"$role_definition")"
+            role_model="$(jq -r '.model // "sonnet"' <<<"$role_definition")"
+            role_budget_usd="$(jq -r --arg fallback "$default_budget_usd" '.budgetUsd // $fallback' <<<"$role_definition")"
+            uses_worktree="$(jq -r '.worktree // false' <<<"$role_definition")"
+            role_count="$(jq -r '.count // 1' <<<"$role_definition")"
+            role_prompt="$(jq -r '.prompt // ""' <<<"$role_definition")"
+            for (( role_index = 1; role_index <= role_count; role_index++ )); do
+                window_name="$project_name-$role_name"
+                (( role_count > 1 )) && window_name+="-$role_index"
+                full_prompt="Project: $project_name. Role: $role_name. $role_prompt $shared_prompt"
+                open_role_window "$session_name" "$project_directory" "$window_name" "$role_name" "$role_budget_usd" \
+                    "$(build_role_launch_command "$role_model" "$window_name" "$full_prompt" "$uses_worktree")"
+            done
+        done < <(jq -c '.roles[]' <<<"$team_configuration")
+    fi
+
+    if [[ -n "${TMUX:-}" ]]; then
+        run_tmux switch-client -t "=$session_name"
+    else
+        exec "$TMUX_BIN" attach -t "=$session_name"
+    fi
+}
+
+describe_budget_usage_percent() {
+    local total_cost_usd="$1" budget_usd="$2"
+    awk -v cost="$total_cost_usd" -v budget="$budget_usd" 'BEGIN { if (budget > 0) printf "%d", cost / budget * 100; else print 0 }'
+}
+
+record_budget_state() {
+    local pane_identifier="$1" new_budget_state="$2"
+    run_tmux set -p -t "$pane_identifier" @claude_budget_state "$new_budget_state" 2>/dev/null
+}
+
+notify_budget_event() {
+    local pane_identifier="$1" headline="$2" total_cost_usd="$3" budget_usd="$4"
+    local role_name
+    role_name="$(run_tmux display -p -t "$pane_identifier" '#{@claude_role}' 2>/dev/null)"
+    dnd_on && return 0
+    notify "$headline" "${role_name:-agent} · \$$total_cost_usd of \$$budget_usd" "Press prefix + B to approve more budget" "$pane_identifier"
+}
+
+evaluate_pane_budget() {
+    local pane_identifier="$1" total_cost_usd="$2"
+    local budget_usd budget_state usage_percent
+    IFS='|' read -r budget_usd budget_state < <(run_tmux display -p -t "$pane_identifier" '#{@claude_budget_usd}|#{@claude_budget_state}' 2>/dev/null)
+    [[ -n "$budget_usd" ]] || return 0
+    usage_percent="$(describe_budget_usage_percent "$total_cost_usd" "$budget_usd")"
+    if (( usage_percent >= 100 )) && [[ "$budget_state" != blocked ]]; then
+        record_budget_state "$pane_identifier" blocked
+        notify_budget_event "$pane_identifier" "⛔ Budget exhausted" "$total_cost_usd" "$budget_usd"
+    elif (( usage_percent >= BUDGET_WARNING_PERCENT && usage_percent < 100 )) && [[ "$budget_state" != warned && "$budget_state" != blocked ]]; then
+        record_budget_state "$pane_identifier" warned
+        notify_budget_event "$pane_identifier" "⚠️ Budget at ${usage_percent}%" "$total_cost_usd" "$budget_usd"
+    fi
+}
+
+deny_when_budget_blocked() {
+    local pane_identifier="$1"
+    local budget_state
+    budget_state="$(run_tmux display -p -t "$pane_identifier" '#{@claude_budget_state}' 2>/dev/null)"
+    [[ "$budget_state" == blocked ]] || return 0
+    echo "Budget exhausted for this role. Stop working and tell the user to press prefix + B in tmux to approve more budget." >&2
+    exit 2
+}
+
+cmd_budget_raise() {
+    local pane_identifier="${1:-$(run_tmux display -p '#{pane_id}')}"
+    local current_budget_usd raised_budget_usd
+    current_budget_usd="$(run_tmux display -p -t "$pane_identifier" '#{@claude_budget_usd}')"
+    if [[ -z "$current_budget_usd" ]]; then
+        run_tmux display-message "This pane has no budget"
+        return 0
+    fi
+    raised_budget_usd="$(awk -v current="$current_budget_usd" -v step="$BUDGET_RAISE_STEP_USD" 'BEGIN { print current + step }')"
+    run_tmux set -p -t "$pane_identifier" @claude_budget_usd "$raised_budget_usd"
+    record_budget_state "$pane_identifier" ok
+    run_tmux display-message "Budget raised to \$$raised_budget_usd"
+}
+
 case "${1:-}" in
+    team-up)    shift; cmd_team_up "$@" ;;
+    budget-raise) shift; cmd_budget_raise "$@" ;;
     hook)       cmd_hook ;;
     remind)     shift; cmd_remind "$@" ;;
     next)       cmd_next ;;
@@ -442,5 +628,8 @@ case "${1:-}" in
     dnd)        cmd_dnd ;;
     resume)     cmd_resume ;;
     statusline) cmd_statusline ;;
-    *)          sed -n '2,15s/^# \{0,1\}//p' "$0"; exit 1 ;;
+    *)          sed -n '2,15s/^# \{0,1\}//p' "$0"
+                echo "  claude-tmux team-up [dir]               Open a team session (roles from .claude-tmux/team.json, ~/.config/claude-tmux/team.json or the default tl+dev+qa)"
+                echo "  claude-tmux budget-raise [pane]         Approve more budget for a blocked pane"
+                exit 1 ;;
 esac
