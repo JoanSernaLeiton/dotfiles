@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -uo pipefail
+
+readonly MEMORY_SERVER_HOST="127.0.0.1"
+readonly MEMORY_SERVER_PORT=8765
+readonly MEMORY_SERVER_LAUNCHD_LABEL="com.joan.mcp-memory"
+readonly STARTUP_TIMEOUT_SECONDS=45
+readonly POLL_INTERVAL_SECONDS=0.25
+readonly START_WITHOUT_WAITING_FLAG="--without-waiting"
+
+memory_server_is_listening() {
+  /usr/bin/nc -z "$MEMORY_SERVER_HOST" "$MEMORY_SERVER_PORT" >/dev/null 2>&1
+}
+
+start_memory_server() {
+  /bin/launchctl kickstart "gui/$(/usr/bin/id -u)/$MEMORY_SERVER_LAUNCHD_LABEL" >/dev/null 2>&1
+}
+
+wait_until_memory_server_listens() {
+  local deadline_in_shell_seconds=$(( SECONDS + STARTUP_TIMEOUT_SECONDS ))
+  until memory_server_is_listening; do
+    if (( SECONDS >= deadline_in_shell_seconds )); then
+      echo "La memoria compartida no respondió en ${STARTUP_TIMEOUT_SECONDS} s" >&2
+      return 1
+    fi
+    /bin/sleep "$POLL_INTERVAL_SECONDS"
+  done
+}
+
+main() {
+  memory_server_is_listening && return 0
+  start_memory_server
+  [[ "${1:-}" == "$START_WITHOUT_WAITING_FLAG" ]] && return 0
+  echo "Encendiendo la memoria compartida..." >&2
+  wait_until_memory_server_listens
+}
+
+main "$@"

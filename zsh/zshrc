@@ -51,6 +51,8 @@ alias vim="nvim"
 alias ct="claude-tmux new"
 # Pick a project → its own tmux session with claude + nvim windows (prefix f inside tmux)
 alias tp="claude-tmux project"
+claude() { ensure-memory-mcp-running; command claude "$@"; }
+opencode() { ensure-memory-mcp-running; command opencode "$@"; }
 
 # ── Tools ────────────────────────────────────────────────────────────
 (( $+commands[fzf] )) && source <(fzf --zsh)

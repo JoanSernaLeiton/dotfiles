@@ -336,6 +336,7 @@ cmd_project() {
 
 # Persistent scratch Claude, attached inside a tmux popup (prefix ? toggles it)
 cmd_scratch() {
+    "$HOME/.local/bin/ensure-memory-mcp-running" || true
     if ! t has-session -t =scratch 2>/dev/null; then
         t new-session -d -s scratch -c "$PWD" claude
         t set -t =scratch status off
@@ -426,6 +427,7 @@ cmd_statusline() {
 # tmux-resurrect restore: reopen this pane's conversation (or the latest in this directory)
 cmd_resume() {
     local key sid=""
+    "$HOME/.local/bin/ensure-memory-mcp-running" || true
     if [[ -n "${TMUX_PANE:-}" ]]; then
         key="$(t display -p -t "$TMUX_PANE" '#S:#I.#P' | tr '/' '_')"
         [[ -f "$STATE_DIR/$key" ]] && sid="$(cat "$STATE_DIR/$key")"

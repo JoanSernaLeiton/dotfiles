@@ -714,13 +714,16 @@ configure_claude_settings() {
     mkdir -p "$HOME/.claude"
     [[ -s "$settings" ]] || echo '{}' > "$settings"
     tmp="$(mktemp)"
-    jq --arg cmd '$HOME/.local/bin/claude-tmux hook' '
+    jq --arg cmd '$HOME/.local/bin/claude-tmux hook' \
+       --arg memory_cmd '$HOME/.local/bin/ensure-memory-mcp-running --without-waiting' '
         # Drop our previous entries so re-running is idempotent, then add them back
         def ours: .hooks | any(.command == $cmd);
         .hooks |= (. // {})
         | reduce ("SessionStart", "PreToolUse", "UserPromptSubmit", "PostToolUse", "Notification", "Stop", "SessionEnd") as $ev (.;
             .hooks[$ev] = ([(.hooks[$ev] // [])[] | select(ours | not)]
                            + [{hooks: [{type: "command", command: $cmd, timeout: 10}]}]))
+        | .hooks.SessionStart = ([.hooks.SessionStart[] | select(any(.hooks[]; .command == $memory_cmd) | not)]
+                                + [{hooks: [{type: "command", command: $memory_cmd, timeout: 5}]}])
         # Agent teams: one tmux pane per teammate when running inside tmux
         | .env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
         | .teammateMode = "auto"
