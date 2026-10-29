@@ -757,6 +757,8 @@ install_macos() {
     install_maintenance_agent mac-maintenance
     install_maintenance_agent brew-daily-upgrade
     install_maintenance_agent mac-process-watchdog
+    install_maintenance_agent mac-restart-reminder
+    install_maintenance_agent docker-desktop-at-login
     success "macos done"
 }
 
@@ -808,7 +810,7 @@ automatically: macOS, Debian/Ubuntu, Fedora, Arch, or WSL.
   memory  - Shared memory MCP server (mcp-memory-service on :8765, launchd/systemd) for Claude and OpenCode
   claude  - Claude Code CLI + tmux hooks, status line, agent-team panes, MCPs (memory, playwright), rtk hook
   opencode - OpenCode CLI + config (model, MCPs, AGENTS.md) + rtk and tmux plugins
-  macos   - macOS system defaults (macos.sh) + launch agents: weekly mac-maintenance, brew-daily-upgrade at 07:00 and 21:00, mac-process-watchdog every 5 min and on volume mount (skipped elsewhere)
+  macos   - macOS system defaults (macos.sh) + launch agents: weekly mac-maintenance, brew-daily-upgrade at 07:00 and 21:00, mac-process-watchdog every 5 min and on volume mount, mac-restart-reminder at 09:00, docker-desktop-at-login (skipped elsewhere)
 
 --lite, for old or low-RAM machines. Runs every module except python, and:
   brew    - only Brewfile (skips Brewfile.full: Go, Bazel, Deno, cloud CLIs, image tools, Mac apps)

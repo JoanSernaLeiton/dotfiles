@@ -1,12 +1,16 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -uo pipefail
+set -o noglob
 
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 
 readonly APP_STORE_AGENT_PROCESS_NAME="appstoreagent"
 readonly APP_STORE_AGENT_CPU_PERCENT_THRESHOLD=40
 readonly APP_STORE_AGENT_CONSECUTIVE_HIGH_CHECKS_BEFORE_RESTART=3
+readonly LEAKY_XPC_SERVICE_PROCESS_NAME="SetStoreUpdateService"
+readonly LEAKY_XPC_SERVICE_INSTANCES_TO_KEEP=1
+readonly LEAKY_XPC_SERVICE_MINIMUM_AGE_SECONDS=600
 readonly AUTO_EJECTED_VOLUME_NAMES=("INSTANTVIEW")
 readonly WATCHDOG_STATE_DIRECTORY="$HOME/Library/Application Support/mac-process-watchdog"
 readonly APP_STORE_AGENT_HIGH_CHECKS_FILE="$WATCHDOG_STATE_DIRECTORY/appstoreagent-consecutive-high-checks"
@@ -23,39 +27,72 @@ notify_user() {
   osascript -e "display notification \"$notification_message\" with title \"$NOTIFICATION_TITLE\"" 2>/dev/null || true
 }
 
-read_app_store_agent_cpu_percent() {
-  ps -Ao pcpu=,comm= | awk -v process_name="$APP_STORE_AGENT_PROCESS_NAME" '
-    $2 ~ process_name "$" { total_cpu_percent += $1 }
-    END { printf "%d", total_cpu_percent }
+print_app_store_agent_cpu_percent_and_leaked_xpc_service_process_identifiers() {
+  ps -U "$UID" -o pid=,pcpu=,etime=,comm= | awk \
+    -v app_store_agent_process_name="$APP_STORE_AGENT_PROCESS_NAME" \
+    -v leaky_service_process_name="$LEAKY_XPC_SERVICE_PROCESS_NAME" \
+    -v instances_to_keep="$LEAKY_XPC_SERVICE_INSTANCES_TO_KEEP" \
+    -v minimum_age_seconds="$LEAKY_XPC_SERVICE_MINIMUM_AGE_SECONDS" '
+    function elapsed_time_to_seconds(elapsed_time,    day_and_clock_parts, clock_parts, elapsed_days) {
+      elapsed_days = 0
+      if (split(elapsed_time, day_and_clock_parts, "-") == 2) {
+        elapsed_days = day_and_clock_parts[1]
+        elapsed_time = day_and_clock_parts[2]
+      }
+      if (split(elapsed_time, clock_parts, ":") == 3) {
+        return elapsed_days * 86400 + clock_parts[1] * 3600 + clock_parts[2] * 60 + clock_parts[3]
+      }
+      return elapsed_days * 86400 + clock_parts[1] * 60 + clock_parts[2]
+    }
+    $NF ~ "(^|/)" app_store_agent_process_name "$" { app_store_agent_cpu_percent += $2 }
+    $NF ~ "(^|/)" leaky_service_process_name "$" {
+      leaky_instance_count++
+      leaky_instance_process_identifiers[leaky_instance_count] = $1
+      leaky_instance_ages_in_seconds[leaky_instance_count] = elapsed_time_to_seconds($3)
+    }
+    END {
+      printf "%d", app_store_agent_cpu_percent
+      for (candidate_instance = 1; candidate_instance <= leaky_instance_count; candidate_instance++) {
+        younger_instance_count = 0
+        for (compared_instance = 1; compared_instance <= leaky_instance_count; compared_instance++) {
+          if (leaky_instance_ages_in_seconds[compared_instance] < leaky_instance_ages_in_seconds[candidate_instance]) younger_instance_count++
+        }
+        if (younger_instance_count >= instances_to_keep && leaky_instance_ages_in_seconds[candidate_instance] >= minimum_age_seconds) {
+          printf " %s", leaky_instance_process_identifiers[candidate_instance]
+        }
+      }
+      print ""
+    }
   '
 }
 
-read_consecutive_high_checks() {
-  if [[ -r "$APP_STORE_AGENT_HIGH_CHECKS_FILE" ]]; then
-    cat "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
-  else
-    echo 0
+forget_consecutive_high_checks() {
+  if [[ -e "$APP_STORE_AGENT_HIGH_CHECKS_FILE" ]]; then
+    rm -f "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
   fi
 }
 
-write_consecutive_high_checks() {
+remember_consecutive_high_checks() {
   local consecutive_high_checks="$1"
+  [[ -d "$WATCHDOG_STATE_DIRECTORY" ]] || mkdir -p "$WATCHDOG_STATE_DIRECTORY"
   printf '%s' "$consecutive_high_checks" > "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
 }
 
 restart_app_store_agent_when_stuck() {
-  local current_cpu_percent consecutive_high_checks
-  current_cpu_percent="$(read_app_store_agent_cpu_percent)"
-  consecutive_high_checks="$(read_consecutive_high_checks)"
+  local current_cpu_percent="$1"
+  local consecutive_high_checks=0
 
   if (( current_cpu_percent < APP_STORE_AGENT_CPU_PERCENT_THRESHOLD )); then
-    write_consecutive_high_checks 0
+    forget_consecutive_high_checks
     return
   fi
 
+  if [[ -r "$APP_STORE_AGENT_HIGH_CHECKS_FILE" ]]; then
+    read -r consecutive_high_checks < "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
+  fi
   consecutive_high_checks=$(( consecutive_high_checks + 1 ))
   if (( consecutive_high_checks < APP_STORE_AGENT_CONSECUTIVE_HIGH_CHECKS_BEFORE_RESTART )); then
-    write_consecutive_high_checks "$consecutive_high_checks"
+    remember_consecutive_high_checks "$consecutive_high_checks"
     return
   fi
 
@@ -65,7 +102,20 @@ restart_app_store_agent_when_stuck() {
   else
     log_watchdog_event "no se pudo reiniciar appstoreagent (${current_cpu_percent}% CPU)"
   fi
-  write_consecutive_high_checks 0
+  forget_consecutive_high_checks
+}
+
+close_leaked_xpc_service_instances() {
+  (( $# > 0 )) || return
+  kill -KILL "$@" 2>/dev/null
+  log_watchdog_event "$LEAKY_XPC_SERVICE_PROCESS_NAME: cerradas $# copias filtradas"
+}
+
+handle_process_report() {
+  local app_store_agent_cpu_percent="$1"
+  shift
+  restart_app_store_agent_when_stuck "$app_store_agent_cpu_percent"
+  close_leaked_xpc_service_instances "$@"
 }
 
 eject_auto_ejected_volumes() {
@@ -82,8 +132,7 @@ eject_auto_ejected_volumes() {
 }
 
 main() {
-  mkdir -p "$WATCHDOG_STATE_DIRECTORY" "$(dirname "$WATCHDOG_LOG_FILE")"
-  restart_app_store_agent_when_stuck
+  handle_process_report $(print_app_store_agent_cpu_percent_and_leaked_xpc_service_process_identifiers)
   eject_auto_ejected_volumes
 }
 

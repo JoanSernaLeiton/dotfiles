@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -uo pipefail
+
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+
+readonly UPTIME_DAYS_BEFORE_RESTART_REMINDER=7
+readonly SECONDS_PER_DAY=86400
+readonly NOTIFICATION_TITLE="Vigilante Mac"
+readonly RESTART_REMINDER_LOG_FILE="$HOME/Library/Logs/mac-restart-reminder.log"
+
+read_boot_epoch_seconds() {
+  sysctl -n kern.boottime | sed -E 's/^\{ sec = ([0-9]+),.*/\1/'
+}
+
+read_uptime_in_days() {
+  echo $(( ($(date +%s) - $(read_boot_epoch_seconds)) / SECONDS_PER_DAY ))
+}
+
+main() {
+  local uptime_in_days
+  uptime_in_days="$(read_uptime_in_days)"
+  (( uptime_in_days >= UPTIME_DAYS_BEFORE_RESTART_REMINDER )) || return 0
+  osascript -e "display notification \"Lleva $uptime_in_days días encendida. Reiníciala hoy cuando los agentes paren, Docker y los contenedores vuelven solos.\" with title \"$NOTIFICATION_TITLE\"" 2>/dev/null || true
+  printf '%s recordatorio de reinicio enviado (%s días encendida)\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$uptime_in_days" >> "$RESTART_REMINDER_LOG_FILE"
+}
+
+main "$@"
