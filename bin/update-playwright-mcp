@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -uo pipefail
+
+readonly PLAYWRIGHT_MCP_PACKAGE="@playwright/mcp"
+readonly PLAYWRIGHT_MCP_INSTALL_PREFIX="$HOME/.local/share/playwright-mcp"
+readonly PLAYWRIGHT_MCP_PACKAGE_MANIFEST="$PLAYWRIGHT_MCP_INSTALL_PREFIX/node_modules/$PLAYWRIGHT_MCP_PACKAGE/package.json"
+readonly PLAYWRIGHT_MCP_EXECUTABLE="$PLAYWRIGHT_MCP_INSTALL_PREFIX/node_modules/.bin/playwright-mcp"
+readonly PLAYWRIGHT_MCP_LAUNCHER_LINK="$HOME/.local/bin/playwright-mcp"
+readonly VERSION_WHEN_NOT_INSTALLED="none"
+
+print_installed_playwright_mcp_version() {
+  if [[ -r "$PLAYWRIGHT_MCP_PACKAGE_MANIFEST" ]]; then
+    jq -r .version "$PLAYWRIGHT_MCP_PACKAGE_MANIFEST"
+  else
+    echo "$VERSION_WHEN_NOT_INSTALLED"
+  fi
+}
+
+run_npm_with_default_node() {
+  if command -v fnm >/dev/null 2>&1; then
+    fnm exec --using=default npm "$@"
+  else
+    npm "$@"
+  fi
+}
+
+install_latest_playwright_mcp() {
+  mkdir -p "$PLAYWRIGHT_MCP_INSTALL_PREFIX" "$(dirname "$PLAYWRIGHT_MCP_LAUNCHER_LINK")"
+  run_npm_with_default_node install \
+    --prefix "$PLAYWRIGHT_MCP_INSTALL_PREFIX" \
+    --no-audit --no-fund --loglevel=error \
+    "$PLAYWRIGHT_MCP_PACKAGE@latest" >/dev/null || return 1
+  ln -sfn "$PLAYWRIGHT_MCP_EXECUTABLE" "$PLAYWRIGHT_MCP_LAUNCHER_LINK"
+}
+
+main() {
+  local version_before_update version_after_update
+  version_before_update="$(print_installed_playwright_mcp_version)"
+  install_latest_playwright_mcp || return 1
+  version_after_update="$(print_installed_playwright_mcp_version)"
+  if [[ "$version_before_update" != "$version_after_update" ]]; then
+    echo "$PLAYWRIGHT_MCP_PACKAGE $version_before_update -> $version_after_update"
+  fi
+}
+
+main "$@"

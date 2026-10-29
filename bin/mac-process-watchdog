@@ -12,8 +12,14 @@ readonly LEAKY_XPC_SERVICE_PROCESS_NAME="SetStoreUpdateService"
 readonly LEAKY_XPC_SERVICE_INSTANCES_TO_KEEP=1
 readonly LEAKY_XPC_SERVICE_MINIMUM_AGE_SECONDS=600
 readonly AUTO_EJECTED_VOLUME_NAMES=("INSTANTVIEW")
+readonly MEMORY_CLIENT_PROCESS_NAMES_PATTERN="claude|opencode"
+readonly MEMORY_SERVER_LAUNCHD_LABEL="com.joan.mcp-memory"
+readonly MEMORY_SERVER_HOST="127.0.0.1"
+readonly MEMORY_SERVER_PORT=8765
+readonly MEMORY_SERVER_IDLE_CHECKS_BEFORE_STOP=2
 readonly WATCHDOG_STATE_DIRECTORY="$HOME/Library/Application Support/mac-process-watchdog"
 readonly APP_STORE_AGENT_HIGH_CHECKS_FILE="$WATCHDOG_STATE_DIRECTORY/appstoreagent-consecutive-high-checks"
+readonly MEMORY_SERVER_IDLE_CHECKS_FILE="$WATCHDOG_STATE_DIRECTORY/memory-server-consecutive-idle-checks"
 readonly WATCHDOG_LOG_FILE="$HOME/Library/Logs/mac-process-watchdog.log"
 readonly NOTIFICATION_TITLE="Vigilante Mac"
 
@@ -27,9 +33,10 @@ notify_user() {
   osascript -e "display notification \"$notification_message\" with title \"$NOTIFICATION_TITLE\"" 2>/dev/null || true
 }
 
-print_app_store_agent_cpu_percent_and_leaked_xpc_service_process_identifiers() {
+print_app_store_agent_cpu_percent_memory_client_session_count_and_leaked_xpc_service_process_identifiers() {
   ps -U "$UID" -o pid=,pcpu=,etime=,comm= | awk \
     -v app_store_agent_process_name="$APP_STORE_AGENT_PROCESS_NAME" \
+    -v memory_client_process_names_pattern="$MEMORY_CLIENT_PROCESS_NAMES_PATTERN" \
     -v leaky_service_process_name="$LEAKY_XPC_SERVICE_PROCESS_NAME" \
     -v instances_to_keep="$LEAKY_XPC_SERVICE_INSTANCES_TO_KEEP" \
     -v minimum_age_seconds="$LEAKY_XPC_SERVICE_MINIMUM_AGE_SECONDS" '
@@ -45,13 +52,14 @@ print_app_store_agent_cpu_percent_and_leaked_xpc_service_process_identifiers() {
       return elapsed_days * 86400 + clock_parts[1] * 60 + clock_parts[2]
     }
     $NF ~ "(^|/)" app_store_agent_process_name "$" { app_store_agent_cpu_percent += $2 }
+    $NF ~ "(^|/)(" memory_client_process_names_pattern ")$" || $NF ~ "/claude/versions/" { memory_client_session_count++ }
     $NF ~ "(^|/)" leaky_service_process_name "$" {
       leaky_instance_count++
       leaky_instance_process_identifiers[leaky_instance_count] = $1
       leaky_instance_ages_in_seconds[leaky_instance_count] = elapsed_time_to_seconds($3)
     }
     END {
-      printf "%d", app_store_agent_cpu_percent
+      printf "%d %d", app_store_agent_cpu_percent, memory_client_session_count
       for (candidate_instance = 1; candidate_instance <= leaky_instance_count; candidate_instance++) {
         younger_instance_count = 0
         for (compared_instance = 1; compared_instance <= leaky_instance_count; compared_instance++) {
@@ -66,16 +74,18 @@ print_app_store_agent_cpu_percent_and_leaked_xpc_service_process_identifiers() {
   '
 }
 
-forget_consecutive_high_checks() {
-  if [[ -e "$APP_STORE_AGENT_HIGH_CHECKS_FILE" ]]; then
-    rm -f "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
+forget_consecutive_checks() {
+  local consecutive_checks_file="$1"
+  if [[ -e "$consecutive_checks_file" ]]; then
+    rm -f "$consecutive_checks_file"
   fi
 }
 
-remember_consecutive_high_checks() {
-  local consecutive_high_checks="$1"
+remember_consecutive_checks() {
+  local consecutive_checks_file="$1"
+  local consecutive_checks="$2"
   [[ -d "$WATCHDOG_STATE_DIRECTORY" ]] || mkdir -p "$WATCHDOG_STATE_DIRECTORY"
-  printf '%s' "$consecutive_high_checks" > "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
+  printf '%s' "$consecutive_checks" > "$consecutive_checks_file"
 }
 
 restart_app_store_agent_when_stuck() {
@@ -83,7 +93,7 @@ restart_app_store_agent_when_stuck() {
   local consecutive_high_checks=0
 
   if (( current_cpu_percent < APP_STORE_AGENT_CPU_PERCENT_THRESHOLD )); then
-    forget_consecutive_high_checks
+    forget_consecutive_checks "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
     return
   fi
 
@@ -92,7 +102,7 @@ restart_app_store_agent_when_stuck() {
   fi
   consecutive_high_checks=$(( consecutive_high_checks + 1 ))
   if (( consecutive_high_checks < APP_STORE_AGENT_CONSECUTIVE_HIGH_CHECKS_BEFORE_RESTART )); then
-    remember_consecutive_high_checks "$consecutive_high_checks"
+    remember_consecutive_checks "$APP_STORE_AGENT_HIGH_CHECKS_FILE" "$consecutive_high_checks"
     return
   fi
 
@@ -102,7 +112,7 @@ restart_app_store_agent_when_stuck() {
   else
     log_watchdog_event "no se pudo reiniciar appstoreagent (${current_cpu_percent}% CPU)"
   fi
-  forget_consecutive_high_checks
+  forget_consecutive_checks "$APP_STORE_AGENT_HIGH_CHECKS_FILE"
 }
 
 close_leaked_xpc_service_instances() {
@@ -111,10 +121,39 @@ close_leaked_xpc_service_instances() {
   log_watchdog_event "$LEAKY_XPC_SERVICE_PROCESS_NAME: cerradas $# copias filtradas"
 }
 
+stop_memory_server_when_no_session_uses_it() {
+  local memory_client_session_count="$1"
+  local consecutive_idle_checks=0
+
+  if (( memory_client_session_count > 0 )); then
+    forget_consecutive_checks "$MEMORY_SERVER_IDLE_CHECKS_FILE"
+    return
+  fi
+
+  if [[ -r "$MEMORY_SERVER_IDLE_CHECKS_FILE" ]]; then
+    read -r consecutive_idle_checks < "$MEMORY_SERVER_IDLE_CHECKS_FILE"
+  fi
+  consecutive_idle_checks=$(( consecutive_idle_checks + 1 ))
+  if (( consecutive_idle_checks < MEMORY_SERVER_IDLE_CHECKS_BEFORE_STOP )); then
+    remember_consecutive_checks "$MEMORY_SERVER_IDLE_CHECKS_FILE" "$consecutive_idle_checks"
+    return
+  fi
+
+  forget_consecutive_checks "$MEMORY_SERVER_IDLE_CHECKS_FILE"
+  nc -z "$MEMORY_SERVER_HOST" "$MEMORY_SERVER_PORT" >/dev/null 2>&1 || return
+  if launchctl kill TERM "gui/$UID/$MEMORY_SERVER_LAUNCHD_LABEL" >/dev/null 2>&1; then
+    log_watchdog_event "memoria compartida apagada tras ${consecutive_idle_checks} chequeos sin sesiones de claude u opencode"
+  else
+    log_watchdog_event "no se pudo apagar la memoria compartida"
+  fi
+}
+
 handle_process_report() {
   local app_store_agent_cpu_percent="$1"
-  shift
+  local memory_client_session_count="$2"
+  shift 2
   restart_app_store_agent_when_stuck "$app_store_agent_cpu_percent"
+  stop_memory_server_when_no_session_uses_it "$memory_client_session_count"
   close_leaked_xpc_service_instances "$@"
 }
 
@@ -132,7 +171,7 @@ eject_auto_ejected_volumes() {
 }
 
 main() {
-  handle_process_report $(print_app_store_agent_cpu_percent_and_leaked_xpc_service_process_identifiers)
+  handle_process_report $(print_app_store_agent_cpu_percent_memory_client_session_count_and_leaked_xpc_service_process_identifiers)
   eject_auto_ejected_volumes
 }
 

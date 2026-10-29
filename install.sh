@@ -568,6 +568,7 @@ install_node() {
     eval "$(fnm env --shell bash)"
     fnm install --lts
     fnm default lts-latest
+    "$DOTFILES/bin/update-playwright-mcp" >/dev/null || warn "Could not install the Playwright MCP server"
     success "node done ($(fnm exec --using=default node --version))"
 }
 
@@ -629,6 +630,7 @@ PY
             rm -f "$tmp"
         fi
         launchctl print "gui/$(id -u)/$label" &>/dev/null || launchctl bootstrap "gui/$(id -u)" "$plist"
+        launchctl kickstart "gui/$(id -u)/$label" 2>/dev/null || true
     elif command -v systemctl &>/dev/null && systemctl --user show-environment &>/dev/null; then
         symlink "$DOTFILES/memory/mcp-memory.service" "$HOME/.config/systemd/user/mcp-memory.service"
         systemctl --user daemon-reload

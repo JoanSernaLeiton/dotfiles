@@ -5,7 +5,11 @@
   },
   "playwright": {
     "type": "stdio",
-    "command": "npx",
-    "args": ["-y", "@playwright/mcp@latest", "--isolated", "--browser", "chrome-dev"]
+    "command": "playwright-mcp",
+    "args": [
+      "--isolated",
+      "--browser",
+      "chrome-dev"
+    ]
   }
 }

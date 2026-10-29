@@ -18,6 +18,7 @@ readonly LOG_FILE="$HOME/Library/Logs/brew-daily-upgrade.log"
 readonly MAXIMUM_LOG_LINES=5000
 readonly MEMORY_SERVER_LAUNCH_AGENT_LABEL="com.joan.mcp-memory"
 readonly MEMORY_SERVER_PYTHON_FORMULA="python@3.12"
+readonly PLAYWRIGHT_MCP_UPDATER="$HOME/.local/bin/update-playwright-mcp"
 readonly NOTIFICATION_TITLE="Homebrew"
 readonly NOTIFICATION_SUBTITLE="Detalle en ~/Library/Logs/brew-daily-upgrade.log"
 
@@ -92,7 +93,7 @@ collect_upgraded_packages() {
 
 restart_memory_server() {
     local memory_server_service_target="gui/$(id -u)/$MEMORY_SERVER_LAUNCH_AGENT_LABEL"
-    launchctl print "$memory_server_service_target" >/dev/null 2>&1 || return 0
+    launchctl print "$memory_server_service_target" 2>/dev/null | grep -q "state = running" || return 0
     log "→ launchctl kickstart -k $memory_server_service_target ($MEMORY_SERVER_PYTHON_FORMULA was upgraded)"
     launchctl kickstart -k "$memory_server_service_target" || failures+=("No se pudo reiniciar el servidor de memoria")
 }
@@ -110,6 +111,17 @@ restart_upgraded_services() {
             restart_memory_server
         fi
     done
+}
+
+update_playwright_mcp() {
+    [[ -x "$PLAYWRIGHT_MCP_UPDATER" ]] || return 0
+    local playwright_mcp_version_change
+    log "→ update-playwright-mcp"
+    if ! playwright_mcp_version_change="$("$PLAYWRIGHT_MCP_UPDATER")"; then
+        failures+=("update-playwright-mcp: npm install salió con error")
+        return
+    fi
+    [[ -n "$playwright_mcp_version_change" ]] && upgraded_packages+=("$playwright_mcp_version_change")
 }
 
 join_with_commas() {
@@ -170,6 +182,7 @@ main() {
         collect_upgraded_packages "$packages_outdated_before" "$packages_still_outdated"
         restart_upgraded_services
     fi
+    update_playwright_mcp
     run_brew_step "$BREW_CLEANUP_TIMEOUT_SECONDS" cleanup --prune="$MAXIMUM_CACHE_AGE_IN_DAYS"
     notify_outcome
     log "finished: ${#upgraded_packages[@]} upgraded, ${#failures[@]} failures"
