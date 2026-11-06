@@ -676,7 +676,50 @@ install_claude() {
     configure_claude_settings
     configure_claude_mcp
     configure_claude_rtk
+    configure_claude_stream_deck
     success "claude done"
+}
+
+configure_claude_stream_deck() {
+    local stream_deck_hook_command='$HOME/.local/bin/claude-stream-deck'
+    local stream_deck_configuration_file="$HOME/.config/claude-stream-deck/config.json"
+    local stream_deck_default_server_url="http://192.168.1.150:8791"
+    local settings_file="$HOME/.claude/settings.json"
+    local stream_deck_machine_name merged_settings_file
+    if ! command -v jq &>/dev/null || ! command -v python3 &>/dev/null; then
+        warn "jq or python3 not found; skipping the Claude Stream Deck hooks"
+        return
+    fi
+    symlink "$DOTFILES/bin/claude-stream-deck" "$HOME/.local/bin/claude-stream-deck"
+    if [[ ! -s "$stream_deck_configuration_file" ]]; then
+        stream_deck_machine_name="${CLAUDE_STREAM_DECK_MACHINE:-$(prompt "Stream Deck name for this machine (personal/trabajo, empty to skip):")}"
+        if [[ -z "$stream_deck_machine_name" ]]; then
+            info "No Stream Deck name given; Claude Stream Deck hooks not installed"
+            return
+        fi
+        mkdir -p "$(dirname "$stream_deck_configuration_file")"
+        jq -n --arg machine "$stream_deck_machine_name" \
+              --arg server_url "${CLAUDE_STREAM_DECK_SERVER_URL:-$stream_deck_default_server_url}" \
+              '{machine: $machine, server_url: $server_url}' > "$stream_deck_configuration_file"
+        success "Stream Deck config → $stream_deck_configuration_file"
+    fi
+    mkdir -p "$HOME/.claude"
+    [[ -s "$settings_file" ]] || echo '{}' > "$settings_file"
+    merged_settings_file="$(mktemp)"
+    jq --arg stream_deck_command "$stream_deck_hook_command" \
+       --arg waiting_status_message "También en el Stream Deck" '
+        def without_stream_deck_entries: [(. // [])[] | select(any(.hooks[]?; .command == $stream_deck_command) | not)];
+        def blocking_stream_deck_hook: {type: "command", command: $stream_deck_command, timeout: 1800, statusMessage: $waiting_status_message};
+        def background_stream_deck_hook: {type: "command", command: $stream_deck_command, async: true, timeout: 10};
+        .hooks |= (. // {})
+        | .hooks.PreToolUse = (.hooks.PreToolUse | without_stream_deck_entries)
+        | .hooks.PermissionRequest = ((.hooks.PermissionRequest | without_stream_deck_entries)
+                                      + [{hooks: [blocking_stream_deck_hook]}])
+        | reduce ("SessionStart", "UserPromptSubmit", "Stop", "SessionEnd") as $background_event_name (.;
+            .hooks[$background_event_name] = ((.hooks[$background_event_name] | without_stream_deck_entries)
+                                              + [{hooks: [background_stream_deck_hook]}]))
+    ' "$settings_file" > "$merged_settings_file" && mv "$merged_settings_file" "$settings_file"
+    success "Claude Code hooks → Stream Deck (~/.claude/settings.json)"
 }
 
 # User-scope MCP servers from claude/mcp.json (same ones OpenCode gets in opencode/opencode.json)
