@@ -18,6 +18,8 @@ SESSION_TITLE_CACHE_DIRECTORY = CACHE_DIRECTORY / "session-titles"
 ERROR_LOG_PATH = CACHE_DIRECTORY / "errors.log"
 MAXIMUM_ERROR_LOG_BYTES = 256 * 1024
 INTERACTIVE_ENTRYPOINT = "cli"
+DECK_ENABLED_ENVIRONMENT_VARIABLE = "CLAUDE_STREAM_DECK"
+DECK_ENABLING_VALUES = frozenset({"1", "true", "on", "yes", "si", "sí"})
 QUESTION_TOOL_NAME = "AskUserQuestion"
 TERMINAL_ONLY_PERMISSION_TOOL_NAMES = frozenset({"ExitPlanMode"})
 SHORT_REQUEST_TIMEOUT_SECONDS = 3
@@ -56,6 +58,10 @@ def load_configuration():
 
 def is_interactive_session():
     return os.environ.get("CLAUDE_CODE_ENTRYPOINT", INTERACTIVE_ENTRYPOINT) == INTERACTIVE_ENTRYPOINT
+
+
+def deck_enabled_by_environment():
+    return os.environ.get(DECK_ENABLED_ENVIRONMENT_VARIABLE, "").strip().lower() in DECK_ENABLING_VALUES
 
 
 def send_json(server_url, method, path, body, timeout_seconds):
@@ -159,6 +165,7 @@ def session_identity(hook_input, configuration):
         "session_id": session_id,
         "project": project,
         "session_label": session_label(session_id, project),
+        "deck_enabled_by_environment": deck_enabled_by_environment(),
     }
     agent_type = hook_input.get("agent_type")
     if isinstance(agent_type, str) and agent_type:
@@ -470,7 +477,7 @@ def handle_session_activity(configuration, hook_input):
 
 
 def handle_session_end(configuration, hook_input):
-    notify_stream_deck(configuration, "/api/sessions/active", session_identity(hook_input, configuration))
+    notify_stream_deck(configuration, "/api/sessions/ended", session_identity(hook_input, configuration))
     forget_session_title(hook_input.get("session_id"))
 
 

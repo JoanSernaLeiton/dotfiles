@@ -707,7 +707,7 @@ configure_claude_stream_deck() {
     [[ -s "$settings_file" ]] || echo '{}' > "$settings_file"
     merged_settings_file="$(mktemp)"
     jq --arg stream_deck_command "$stream_deck_hook_command" \
-       --arg waiting_status_message "También en el Stream Deck" '
+       --arg waiting_status_message "Esperando tu respuesta" '
         def without_stream_deck_entries: [(. // [])[] | select(any(.hooks[]?; .command == $stream_deck_command) | not)];
         def blocking_stream_deck_hook: {type: "command", command: $stream_deck_command, timeout: 1800, statusMessage: $waiting_status_message};
         def background_stream_deck_hook: {type: "command", command: $stream_deck_command, async: true, timeout: 10};
@@ -720,6 +720,7 @@ configure_claude_stream_deck() {
                                               + [{hooks: [background_stream_deck_hook]}]))
     ' "$settings_file" > "$merged_settings_file" && mv "$merged_settings_file" "$settings_file"
     success "Claude Code hooks → Stream Deck (~/.claude/settings.json)"
+    info "Sessions stay off the deck by default: launch with CLAUDE_STREAM_DECK=1 claude, or toggle each one live from the deck"
 }
 
 # User-scope MCP servers from claude/mcp.json (same ones OpenCode gets in opencode/opencode.json)

@@ -43,6 +43,8 @@ STATE_FILE_PATH = Path(__file__).resolve().parent / "state.json"
 REQUEST_ABANDON_AFTER_SECONDS = 30
 FINISHED_REQUEST_RETENTION_SECONDS = 120
 WAITING_SESSION_RETENTION_SECONDS = 12 * 3600
+KNOWN_SESSION_RETENTION_SECONDS = 12 * 3600
+SESSION_DECK_OVERRIDE_RETENTION_SECONDS = 7 * 24 * 3600
 LONG_POLL_DEFAULT_SECONDS = 10
 LONG_POLL_MAXIMUM_SECONDS = 15
 SENT_SCREEN_DISPLAY_SECONDS = 1.2
@@ -128,6 +130,9 @@ IDLE_MAIN_KEY_COLOR = (32, 32, 36)
 MAIN_KEY_PENDING_BACKGROUND_COLOR = (96, 22, 22)
 MAIN_KEY_WAITING_BACKGROUND_COLOR = (54, 44, 18)
 PAUSED_MACHINE_COLOR = (60, 60, 64)
+HIDDEN_SESSION_BACKGROUND_COLOR = (26, 26, 30)
+VISIBLE_SESSION_TINT_WEIGHT = 0.45
+MACHINE_WITHOUT_VISIBLE_SESSIONS_TINT_WEIGHT = 0.35
 WAITING_SESSION_BACKGROUND_COLOR = (34, 40, 46)
 PENDING_LIST_BACKGROUND_COLOR = (110, 28, 28)
 SENT_BACKGROUND_COLOR = (27, 94, 32)
@@ -188,8 +193,13 @@ BANNER_KEY_ROWS = ((0, TEXT_COLUMNS_BESIDE_IDENTITY),)
 FULL_TEXT_KEY_ROWS = ((0, TEXT_COLUMNS_BESIDE_IDENTITY), (1, ALL_COLUMNS), (2, (1, 2, 3)))
 WAITING_READING_KEY_ROWS = ((0, TEXT_COLUMNS_BESIDE_IDENTITY), (1, ALL_COLUMNS), (2, (1, 2)))
 EMPTY_HOME_MESSAGE_KEY_ROWS = ((1, (1, 2, 3)),)
+SESSIONS_BANNER_KEY_ROWS = ((0, (1, 2, 3)),)
+SESSIONS_BACK_KEY_LOCATION = (0, 0)
+SESSIONS_MACHINE_PAUSE_KEY_LOCATION = (0, 4)
 HOME_LIST_LOCATIONS = tuple((row, column) for row in (1, 2) for column in ALL_COLUMNS)
 REQUEST_KIND_LABELS = {"question": "pregunta", "permission": "permiso"}
+VISIBLE_SESSION_CAPTION = "EN EL DECK"
+HIDDEN_SESSION_CAPTION = "OCULTA"
 
 
 @lru_cache(maxsize=64)
@@ -916,6 +926,33 @@ def normalize_machine_name(raw_machine):
     return None
 
 
+def session_override_storage_key(session_key):
+    machine, session_id = session_key
+    return f"{machine}/{session_id}"
+
+
+def parse_session_deck_overrides(stored_overrides):
+    session_deck_overrides = {}
+    if not isinstance(stored_overrides, dict):
+        return session_deck_overrides
+    for storage_key, stored_override in stored_overrides.items():
+        machine, separator, session_id = str(storage_key).partition("/")
+        if not separator or not session_id or normalize_machine_name(machine) is None:
+            continue
+        if not isinstance(stored_override, dict) or not isinstance(stored_override.get("enabled"), bool):
+            continue
+        stored_updated_at = stored_override.get("updated_at")
+        session_deck_overrides[(machine, session_id)] = SessionDeckOverride(
+            enabled=stored_override["enabled"],
+            updated_at=float(stored_updated_at) if isinstance(stored_updated_at, (int, float)) else time.time(),
+        )
+    return session_deck_overrides
+
+
+def describe_session_count(session_count):
+    return "1 sesión" if session_count == 1 else f"{session_count} sesiones"
+
+
 def normalize_project_label(raw_project):
     project = raw_project if isinstance(raw_project, str) and raw_project.strip() else "?"
     return truncate_text(project.strip(), MAXIMUM_PROJECT_CHARACTERS)
@@ -1002,6 +1039,23 @@ class WaitingSession:
 
 
 @dataclass
+class KnownSession:
+    machine: str
+    session_id: str
+    project: str
+    session_label: str
+    deck_enabled: bool
+    registered_at: float
+    last_seen_at: float
+
+
+@dataclass
+class SessionDeckOverride:
+    enabled: bool
+    updated_at: float
+
+
+@dataclass
 class ReadingContext:
     source_kind: str
     source_key: object
@@ -1037,7 +1091,14 @@ class ClaudeDeckCoordinator:
         self.requests_by_id = {}
         self.queued_request_ids = []
         self.waiting_sessions_by_key = {}
-        self.routing_enabled_by_machine, self.auto_open_enabled = self.load_preferences()
+        self.known_sessions_by_key = {}
+        (
+            self.routing_enabled_by_machine,
+            self.auto_open_enabled,
+            self.session_deck_overrides,
+        ) = self.load_preferences()
+        self.sessions_screen_machine = None
+        self.sessions_list_page_index = 0
         self.screen = "home"
         self.view_token = 0
         self.state_version = 0
@@ -1075,6 +1136,9 @@ class ClaudeDeckCoordinator:
             "toggle_auto_open": self.press_toggle_auto_open,
             "open_waiting_reading": self.press_open_waiting_reading,
             "dismiss_waiting_session": self.press_dismiss_waiting_session,
+            "open_machine_sessions": self.press_open_machine_sessions,
+            "sessions_next_list_page": self.press_sessions_next_list_page,
+            "toggle_session_on_deck": self.press_toggle_session_on_deck,
         }
 
     def load_preferences(self):
@@ -1083,7 +1147,9 @@ class ClaudeDeckCoordinator:
         try:
             stored_state = json.loads(self.state_file_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
-            return routing_enabled_by_machine, auto_open_enabled
+            return routing_enabled_by_machine, auto_open_enabled, {}
+        if not isinstance(stored_state, dict):
+            return routing_enabled_by_machine, auto_open_enabled, {}
         stored_routing = stored_state.get("routing_enabled_by_machine")
         if isinstance(stored_routing, dict):
             for machine, enabled in stored_routing.items():
@@ -1091,13 +1157,21 @@ class ClaudeDeckCoordinator:
                     routing_enabled_by_machine[machine] = enabled
         if isinstance(stored_state.get("auto_open_enabled"), bool):
             auto_open_enabled = stored_state["auto_open_enabled"]
-        return routing_enabled_by_machine, auto_open_enabled
+        session_deck_overrides = parse_session_deck_overrides(stored_state.get("session_deck_overrides"))
+        return routing_enabled_by_machine, auto_open_enabled, session_deck_overrides
 
     def save_preferences(self):
         temporary_state_path = self.state_file_path.with_suffix(".json.partial")
         stored_state = {
             "routing_enabled_by_machine": self.routing_enabled_by_machine,
             "auto_open_enabled": self.auto_open_enabled,
+            "session_deck_overrides": {
+                session_override_storage_key(session_key): {
+                    "enabled": session_override.enabled,
+                    "updated_at": session_override.updated_at,
+                }
+                for session_key, session_override in self.session_deck_overrides.items()
+            },
         }
         try:
             temporary_state_path.write_text(json.dumps(stored_state), encoding="utf-8")
@@ -1196,6 +1270,78 @@ class ClaudeDeckCoordinator:
         else:
             self.mark_state_changed()
 
+    def initial_deck_visibility(self, session_key, request_body):
+        stored_override = self.session_deck_overrides.get(session_key)
+        if stored_override is not None:
+            return stored_override.enabled
+        return request_body.get("deck_enabled_by_environment") is True
+
+    def register_session_activity(self, request_body, machine, session_id):
+        session_key = (machine, session_id)
+        now = time.monotonic()
+        project = normalize_project_label(request_body.get("project"))
+        session_label = normalize_optional_label(request_body.get("session_label"), MAXIMUM_SESSION_LABEL_CHARACTERS)
+        known_session = self.known_sessions_by_key.get(session_key)
+        if known_session is None:
+            known_session = KnownSession(
+                machine=machine,
+                session_id=session_id,
+                project=project,
+                session_label=session_label,
+                deck_enabled=self.initial_deck_visibility(session_key, request_body),
+                registered_at=now,
+                last_seen_at=now,
+            )
+            self.known_sessions_by_key[session_key] = known_session
+            visibility_description = "on deck" if known_session.deck_enabled else "hidden"
+            log_event(f"session {machine}/{session_id[:8]} {project} registered {visibility_description}")
+            self.mark_state_changed()
+            return known_session
+        known_session.last_seen_at = now
+        label_changed = known_session.project != project or (session_label and known_session.session_label != session_label)
+        if label_changed:
+            known_session.project = project
+            known_session.session_label = session_label or known_session.session_label
+            self.mark_state_changed()
+        return known_session
+
+    def session_is_on_deck(self, machine, session_id):
+        known_session = self.known_sessions_by_key.get((machine, session_id))
+        return known_session is not None and known_session.deck_enabled
+
+    def visible_waiting_sessions(self):
+        return [
+            session
+            for session in self.waiting_sessions_by_key.values()
+            if self.session_is_on_deck(session.machine, session.session_id)
+        ]
+
+    def known_sessions_of_machine(self, machine):
+        machine_sessions = [session for session in self.known_sessions_by_key.values() if session.machine == machine]
+        return sorted(machine_sessions, key=lambda session: session.registered_at)
+
+    def pending_requests_of_session(self, session_key):
+        return [
+            request
+            for request in self.requests_by_id.values()
+            if request.status == "pending" and (request.machine, request.session_id) == session_key
+        ]
+
+    def queue_parked_requests_of_session(self, session_key):
+        for request in self.pending_requests_of_session(session_key):
+            if request.request_id not in self.queued_request_ids:
+                self.queued_request_ids.append(request.request_id)
+        self.queued_request_ids.sort(key=lambda request_id: self.requests_by_id[request_id].created_at)
+
+    def park_queued_requests_of_session(self, session_key):
+        session_request_ids = {request.request_id for request in self.pending_requests_of_session(session_key)}
+        self.queued_request_ids = [
+            request_id for request_id in self.queued_request_ids if request_id not in session_request_ids
+        ]
+        if self.focused_request_id in session_request_ids:
+            self.focused_request_id = None
+            self.confirm_choice = None
+
     def create_request(self, request_body):
         machine = normalize_machine_name(request_body.get("machine"))
         kind = request_body.get("kind")
@@ -1213,6 +1359,7 @@ class ClaudeDeckCoordinator:
                 return {"status": "released", "reason": "machine_paused"}
             if not self.companion_is_reachable:
                 return {"status": "released", "reason": "companion_unreachable"}
+            known_session = self.register_session_activity(request_body, machine, session_id)
             now = time.monotonic()
             request = PendingRequest(
                 request_id=uuid.uuid4().hex,
@@ -1227,8 +1374,12 @@ class ClaudeDeckCoordinator:
                 last_polled_at=now,
             )
             self.requests_by_id[request.request_id] = request
-            self.queued_request_ids.append(request.request_id)
             self.remove_waiting_session((machine, session_id))
+            if not known_session.deck_enabled:
+                self.mark_state_changed()
+                log_event(f"request {request.request_id[:8]} {kind} from {machine}/{request.project} parked (session hidden)")
+                return {"status": "pending", "request_id": request.request_id}
+            self.queued_request_ids.append(request.request_id)
             user_is_browsing_deck = now - self.last_user_press_at < USER_BROWSING_GRACE_SECONDS
             if not self.is_showing_request_flow() and self.screen != "sent" and not user_is_browsing_deck:
                 self.focus_request(self.queued_request_ids[0])
@@ -1289,6 +1440,7 @@ class ClaudeDeckCoordinator:
             raise InvalidRequestBody("machine and session_id are required")
         last_message = request_body.get("last_message")
         with self.condition:
+            self.register_session_activity(request_body, machine, session_id)
             self.withdraw_requests_resolved_in_terminal(machine, session_id)
             self.waiting_sessions_by_key[(machine, session_id)] = WaitingSession(
                 machine=machine,
@@ -1308,8 +1460,25 @@ class ClaudeDeckCoordinator:
         if machine is None or not isinstance(session_id, str):
             raise InvalidRequestBody("machine and session_id are required")
         with self.condition:
+            self.register_session_activity(request_body, machine, session_id)
             self.withdraw_requests_resolved_in_terminal(machine, session_id)
             self.remove_waiting_session((machine, session_id))
+
+    def mark_session_ended(self, request_body):
+        machine = normalize_machine_name(request_body.get("machine"))
+        session_id = request_body.get("session_id")
+        if machine is None or not isinstance(session_id, str):
+            raise InvalidRequestBody("machine and session_id are required")
+        session_key = (machine, session_id)
+        with self.condition:
+            for request in self.pending_requests_of_session(session_key):
+                self.withdraw_request_from_deck(request, "resolved_in_terminal")
+            self.remove_waiting_session(session_key)
+            if self.known_sessions_by_key.pop(session_key, None) is not None:
+                log_event(f"session {machine}/{session_id[:8]} ended")
+            if self.session_deck_overrides.pop(session_key, None) is not None:
+                self.save_preferences()
+            self.mark_state_changed()
 
     def health_summary(self):
         with self.condition:
@@ -1317,7 +1486,15 @@ class ClaudeDeckCoordinator:
                 "ok": True,
                 "companion_reachable": self.companion_is_reachable,
                 "pending_requests": len(self.queued_request_ids),
+                "parked_requests": sum(
+                    1
+                    for request in self.requests_by_id.values()
+                    if request.status == "pending" and request.request_id not in self.queued_request_ids
+                ),
                 "waiting_sessions": len(self.waiting_sessions_by_key),
+                "waiting_sessions_on_deck": len(self.visible_waiting_sessions()),
+                "known_sessions": len(self.known_sessions_by_key),
+                "sessions_on_deck": sum(1 for session in self.known_sessions_by_key.values() if session.deck_enabled),
                 "screen": self.screen,
                 "routing_enabled_by_machine": self.routing_enabled_by_machine,
                 "auto_open_enabled": self.auto_open_enabled,
@@ -1442,7 +1619,7 @@ class ClaudeDeckCoordinator:
         self.transition_to_screen(return_screen)
 
     def press_leave_deck(self, unused_argument):
-        if self.screen in ("confirm", "reading"):
+        if self.screen in ("confirm", "reading", "sessions"):
             self.confirm_choice = None
             self.reading_context = None
             self.transition_to_screen("request" if self.focused_request() else "home")
@@ -1486,9 +1663,8 @@ class ClaudeDeckCoordinator:
         self.routing_enabled_by_machine[machine] = routing_enabled
         self.save_preferences()
         if not routing_enabled:
-            for request_id in list(self.queued_request_ids):
-                request = self.requests_by_id.get(request_id)
-                if request is not None and request.machine == machine:
+            for request in list(self.requests_by_id.values()):
+                if request.status == "pending" and request.machine == machine:
                     self.withdraw_request_from_deck(request, "released")
         log_event(f"routing for {machine} {'enabled' if routing_enabled else 'paused'}")
         self.mark_state_changed()
@@ -1500,7 +1676,7 @@ class ClaudeDeckCoordinator:
         self.mark_state_changed()
 
     def press_open_waiting_reading(self, session_key):
-        if session_key not in self.waiting_sessions_by_key:
+        if session_key not in self.waiting_sessions_by_key or not self.session_is_on_deck(*session_key):
             return
         self.reading_context = ReadingContext("waiting", session_key, 0, "home")
         self.transition_to_screen("reading")
@@ -1509,6 +1685,32 @@ class ClaudeDeckCoordinator:
         self.waiting_sessions_by_key.pop(session_key, None)
         self.reading_context = None
         self.transition_to_screen("home")
+
+    def press_open_machine_sessions(self, machine):
+        self.sessions_screen_machine = machine
+        self.sessions_list_page_index = 0
+        self.confirm_choice = None
+        self.reading_context = None
+        self.transition_to_screen("sessions")
+
+    def press_sessions_next_list_page(self, unused_argument):
+        self.sessions_list_page_index += 1
+        self.mark_state_changed()
+
+    def press_toggle_session_on_deck(self, session_key):
+        known_session = self.known_sessions_by_key.get(session_key)
+        if known_session is None:
+            return
+        known_session.deck_enabled = not known_session.deck_enabled
+        self.session_deck_overrides[session_key] = SessionDeckOverride(known_session.deck_enabled, time.time())
+        self.save_preferences()
+        if known_session.deck_enabled:
+            self.queue_parked_requests_of_session(session_key)
+        else:
+            self.park_queued_requests_of_session(session_key)
+        visibility_description = "shown on deck" if known_session.deck_enabled else "hidden from deck"
+        log_event(f"session {known_session.machine}/{known_session.session_id[:8]} {visibility_description}")
+        self.mark_state_changed()
 
     def run_periodic_maintenance(self):
         with self.condition:
@@ -1523,11 +1725,31 @@ class ClaudeDeckCoordinator:
             for session_key, session in list(self.waiting_sessions_by_key.items()):
                 if now - session.waiting_since > WAITING_SESSION_RETENTION_SECONDS:
                     self.remove_waiting_session(session_key)
+            self.prune_stale_sessions(now)
             if self.screen == "sent" and now >= self.sent_screen_visible_until:
                 self.focus_next_request_or_return_home()
             if now - self.last_time_label_refresh_at >= TIME_LABEL_REFRESH_SECONDS:
                 self.last_time_label_refresh_at = now
                 self.mark_state_changed()
+
+    def prune_stale_sessions(self, now):
+        for session_key, known_session in list(self.known_sessions_by_key.items()):
+            session_is_stale = now - known_session.last_seen_at > KNOWN_SESSION_RETENTION_SECONDS
+            if session_is_stale and not self.pending_requests_of_session(session_key):
+                self.known_sessions_by_key.pop(session_key)
+                log_event(f"session {known_session.machine}/{known_session.session_id[:8]} forgotten after inactivity")
+                self.mark_state_changed()
+        wall_clock_now = time.time()
+        expired_override_keys = [
+            session_key
+            for session_key, session_override in self.session_deck_overrides.items()
+            if session_key not in self.known_sessions_by_key
+            and wall_clock_now - session_override.updated_at > SESSION_DECK_OVERRIDE_RETENTION_SECONDS
+        ]
+        for session_key in expired_override_keys:
+            self.session_deck_overrides.pop(session_key)
+        if expired_override_keys:
+            self.save_preferences()
 
     def take_pending_page_jumps(self):
         with self.condition:
@@ -1550,7 +1772,7 @@ class ClaudeDeckCoordinator:
     def main_page_key_alert_state(self):
         with self.condition:
             pending_count = len(self.queued_request_ids)
-            waiting_count = len(self.waiting_sessions_by_key)
+            waiting_count = len(self.visible_waiting_sessions())
             newest_request_created_at = max(
                 (self.requests_by_id[request_id].created_at for request_id in self.queued_request_ids), default=None
             )
@@ -1585,12 +1807,15 @@ class ClaudeDeckCoordinator:
             return False
         if self.reading_context.source_kind == "request":
             request = self.requests_by_id.get(self.reading_context.source_key)
-            return request is not None and request.status == "pending"
-        return self.reading_context.source_key in self.waiting_sessions_by_key
+            return request is not None and request.status == "pending" and request.request_id in self.queued_request_ids
+        session_key = self.reading_context.source_key
+        return session_key in self.waiting_sessions_by_key and self.session_is_on_deck(*session_key)
 
     def select_frame_builder(self):
         if self.screen == "sent":
             return self.build_sent_frame
+        if self.screen == "sessions" and self.sessions_screen_machine is not None:
+            return self.build_sessions_frame
         request = self.focused_request()
         if self.screen == "request" and request is not None:
             return self.build_question_frame if request.kind == "question" else self.build_permission_frame
@@ -1632,7 +1857,7 @@ class ClaudeDeckCoordinator:
                 )
             )
         waiting_sessions = sorted(
-            self.waiting_sessions_by_key.values(), key=lambda session: session.waiting_since, reverse=True
+            self.visible_waiting_sessions(), key=lambda session: session.waiting_since, reverse=True
         )
         for session in waiting_sessions:
             display = machine_display_for(session.machine)
@@ -1653,51 +1878,58 @@ class ClaudeDeckCoordinator:
             )
         return list_entries
 
-    def place_home_list(self, key_images, key_actions, list_entries):
+    def place_paged_list(self, key_images, key_actions, list_entries, page_index, next_page_action_name):
         if len(list_entries) <= len(HOME_LIST_LOCATIONS):
             visible_entries = list_entries
         else:
             entries_per_page = len(HOME_LIST_LOCATIONS) - 1
             page_count = math.ceil(len(list_entries) / entries_per_page)
-            page_number = self.home_list_page_index % page_count
+            page_number = page_index % page_count
             first_entry_position = page_number * entries_per_page
             visible_entries = list_entries[first_entry_position : first_entry_position + entries_per_page]
             more_location = HOME_LIST_LOCATIONS[-1]
             key_images[more_location] = navigation_key_image(
                 "chevron_right", "MÁS", caption=f"{page_number + 1}/{page_count}"
             )
-            key_actions[more_location] = ("home_next_list_page", None)
+            key_actions[more_location] = (next_page_action_name, None)
         for location, (design, action) in zip(HOME_LIST_LOCATIONS, visible_entries):
             key_images[location] = render_label_key(design)
             key_actions[location] = action
+
+    def machine_sessions_key_image(self, machine):
+        display = machine_display_for(machine)
+        machine_sessions = self.known_sessions_of_machine(machine)
+        visible_session_count = sum(1 for session in machine_sessions if session.deck_enabled)
+        dimmed_machine_color = blend_colors(display.color, PANEL_BACKGROUND_COLOR, MACHINE_WITHOUT_VISIBLE_SESSIONS_TINT_WEIGHT)
+        if not self.routing_enabled_by_machine.get(machine, True):
+            primary_text = "EN PAUSA"
+            footer_text = describe_session_count(len(machine_sessions))
+            background_color = PAUSED_MACHINE_COLOR
+        elif not machine_sessions:
+            primary_text = "—"
+            footer_text = "sin sesiones"
+            background_color = dimmed_machine_color
+        else:
+            primary_text = f"{visible_session_count} de {len(machine_sessions)}"
+            footer_text = "en el deck"
+            background_color = display.color if visible_session_count else dimmed_machine_color
+        return render_label_key(
+            LabelKeyDesign(
+                primary_text=primary_text,
+                background_color=background_color,
+                caption_text=display.label,
+                footer_text=footer_text,
+                maximum_font_size=17,
+            )
+        )
 
     def build_home_frame(self):
         key_images = {}
         key_actions = {}
         now = time.monotonic()
         for column, machine in enumerate(KNOWN_MACHINE_DISPLAYS):
-            display = machine_display_for(machine)
-            routing_enabled = self.routing_enabled_by_machine.get(machine, True)
-            pending_count = sum(
-                1 for request_id in self.queued_request_ids if self.requests_by_id[request_id].machine == machine
-            )
-            waiting_count = sum(1 for session in self.waiting_sessions_by_key.values() if session.machine == machine)
-            if pending_count:
-                footer_text = f"{pending_count} pendientes"
-            elif waiting_count:
-                footer_text = f"{waiting_count} esperando"
-            else:
-                footer_text = ""
-            key_images[(0, column)] = render_label_key(
-                LabelKeyDesign(
-                    primary_text="ACTIVO" if routing_enabled else "EN PAUSA",
-                    background_color=display.color if routing_enabled else PAUSED_MACHINE_COLOR,
-                    caption_text=display.label,
-                    footer_text=footer_text,
-                    maximum_font_size=15,
-                )
-            )
-            key_actions[(0, column)] = ("toggle_machine_routing", machine)
+            key_images[(0, column)] = self.machine_sessions_key_image(machine)
+            key_actions[(0, column)] = ("open_machine_sessions", machine)
         pending_count, waiting_count, unused_should_blink = self.main_page_key_alert_state()
         key_images[(0, 2)] = render_main_page_claude_key(pending_count, waiting_count, True)
         if pending_count:
@@ -1724,7 +1956,83 @@ class ClaudeDeckCoordinator:
                 )
             )
             return key_images, key_actions
-        self.place_home_list(key_images, key_actions, list_entries)
+        self.place_paged_list(key_images, key_actions, list_entries, self.home_list_page_index, "home_next_list_page")
+        return key_images, key_actions
+
+    def session_activity_footer(self, session_key):
+        pending_requests = sorted(self.pending_requests_of_session(session_key), key=lambda request: request.created_at)
+        if pending_requests:
+            return REQUEST_KIND_LABELS[pending_requests[0].kind], WAITING_ALERT_COLOR
+        if session_key in self.waiting_sessions_by_key:
+            return "esperando", MUTED_BODY_COLOR
+        return "activa", MUTED_TEXT_COLOR
+
+    def session_toggle_list_entry(self, known_session):
+        session_key = (known_session.machine, known_session.session_id)
+        display = machine_display_for(known_session.machine)
+        footer_text, footer_color = self.session_activity_footer(session_key)
+        primary_text = join_non_empty_lines(known_session.project, known_session.session_label)
+        if known_session.deck_enabled:
+            design = LabelKeyDesign(
+                primary_text=primary_text,
+                background_color=blend_colors(display.color, PANEL_BACKGROUND_COLOR, VISIBLE_SESSION_TINT_WEIGHT),
+                caption_text=VISIBLE_SESSION_CAPTION,
+                footer_text=footer_text,
+                footer_color=footer_color if footer_color == WAITING_ALERT_COLOR else BODY_TEXT_COLOR,
+                top_strip_color=display.color,
+                maximum_font_size=14,
+            )
+        else:
+            design = LabelKeyDesign(
+                primary_text=primary_text,
+                background_color=HIDDEN_SESSION_BACKGROUND_COLOR,
+                primary_color=MUTED_TEXT_COLOR,
+                caption_text=HIDDEN_SESSION_CAPTION,
+                caption_color=MUTED_TEXT_COLOR,
+                footer_text=footer_text,
+                footer_color=footer_color,
+                maximum_font_size=14,
+            )
+        return design, ("toggle_session_on_deck", session_key)
+
+    def build_sessions_frame(self):
+        machine = self.sessions_screen_machine
+        display = machine_display_for(machine)
+        routing_enabled = self.routing_enabled_by_machine.get(machine, True)
+        banner_paragraphs = [
+            TextParagraph("Sesiones", BODY_TEXT_COLOR, True),
+            TextParagraph("Toca una para mostrar u ocultar", MUTED_BODY_COLOR, starts_new_key=True),
+        ]
+        if not routing_enabled:
+            banner_paragraphs.append(
+                TextParagraph("En pausa, todo queda en la terminal", WAITING_ALERT_COLOR, starts_new_key=True)
+            )
+        key_images = render_text_panel(tuple(banner_paragraphs), SESSIONS_BANNER_KEY_ROWS, banner_background_for(display))
+        key_actions = {}
+        key_images[SESSIONS_BACK_KEY_LOCATION] = navigation_key_image("back", "ATRÁS")
+        key_actions[SESSIONS_BACK_KEY_LOCATION] = ("show_home", None)
+        key_images[SESSIONS_MACHINE_PAUSE_KEY_LOCATION] = render_label_key(
+            LabelKeyDesign(
+                primary_text="ACTIVO" if routing_enabled else "EN PAUSA",
+                background_color=display.color if routing_enabled else PAUSED_MACHINE_COLOR,
+                caption_text=display.label,
+                maximum_font_size=15,
+            )
+        )
+        key_actions[SESSIONS_MACHINE_PAUSE_KEY_LOCATION] = ("toggle_machine_routing", machine)
+        list_entries = [self.session_toggle_list_entry(session) for session in self.known_sessions_of_machine(machine)]
+        if not list_entries:
+            key_images.update(
+                render_text_panel(
+                    (TextParagraph(f"No hay sesiones abiertas en {display.label}", MUTED_TEXT_COLOR),),
+                    EMPTY_HOME_MESSAGE_KEY_ROWS,
+                    EMPTY_KEY_COLOR,
+                )
+            )
+            return key_images, key_actions
+        self.place_paged_list(
+            key_images, key_actions, list_entries, self.sessions_list_page_index, "sessions_next_list_page"
+        )
         return key_images, key_actions
 
     def add_request_navigation_row(self, key_images, key_actions):
@@ -2209,6 +2517,10 @@ class ClaudeDeckRequestHandler(BaseHTTPRequestHandler):
             return
         if parsed_url.path == "/api/sessions/active":
             self.coordinator.mark_session_active(self.read_json_body())
+            self.send_json_response(200, {"ok": True})
+            return
+        if parsed_url.path == "/api/sessions/ended":
+            self.coordinator.mark_session_ended(self.read_json_body())
             self.send_json_response(200, {"ok": True})
             return
         self.send_json_response(404, {"error": "not_found"})
