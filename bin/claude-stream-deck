@@ -26,8 +26,10 @@ TERMINAL_ONLY_PERMISSION_TOOL_NAMES = frozenset({"ExitPlanMode"})
 SHORT_REQUEST_TIMEOUT_SECONDS = 3
 LONG_POLL_SECONDS = 10
 LONG_POLL_HTTP_TIMEOUT_SECONDS = LONG_POLL_SECONDS + 5
-MAXIMUM_CONSECUTIVE_POLL_FAILURES = 3
+COORDINATOR_RETURN_WAIT_SECONDS = 120
 POLL_FAILURE_PAUSE_SECONDS = 2
+UNKNOWN_REQUEST_STATUS_CODE = 404
+MAXIMUM_REPUBLISH_ATTEMPTS = 5
 OVERALL_WAIT_LIMIT_SECONDS = 1780
 SHORT_SESSION_ID_LENGTH = 6
 TMUX_QUERY_TIMEOUT_SECONDS = 1
@@ -250,44 +252,82 @@ def session_identity(hook_input, configuration):
 
 
 class PendingDeckRequest:
-    def __init__(self, server_url, request_id):
+    def __init__(self, server_url, request_body):
         self.server_url = server_url
-        self.request_id = request_id
+        self.request_body = request_body
+        self.request_id = None
         self.finished = False
+        self.republish_attempts = 0
+        self.request_state_lock = threading.RLock()
 
-    def withdraw(self):
-        if self.finished:
-            return
-        self.finished = True
+    def publish(self):
+        status_code, response_body = send_json(
+            self.server_url, "POST", "/api/requests", self.request_body, SHORT_REQUEST_TIMEOUT_SECONDS
+        )
+        request_id = response_body.get("request_id")
+        if status_code != 200 or response_body.get("status") != "pending" or not isinstance(request_id, str):
+            return False
+        with self.request_state_lock:
+            self.request_id = request_id
+            finished_while_publishing = self.finished
+        if finished_while_publishing:
+            self.delete_request(request_id)
+            return False
+        return True
+
+    def republish_after_coordinator_restart(self):
+        if self.finished or self.republish_attempts >= MAXIMUM_REPUBLISH_ATTEMPTS:
+            return False
+        self.republish_attempts += 1
         try:
-            send_json(self.server_url, "DELETE", f"/api/requests/{self.request_id}", None, SHORT_REQUEST_TIMEOUT_SECONDS)
+            return self.publish()
+        except StreamDeckUnavailable:
+            time.sleep(POLL_FAILURE_PAUSE_SECONDS)
+            return True
+
+    def delete_request(self, request_id):
+        try:
+            send_json(self.server_url, "DELETE", f"/api/requests/{request_id}", None, SHORT_REQUEST_TIMEOUT_SECONDS)
         except StreamDeckUnavailable:
             return
 
+    def withdraw(self):
+        with self.request_state_lock:
+            if self.finished:
+                return
+            self.finished = True
+            request_id = self.request_id
+        if request_id is not None:
+            self.delete_request(request_id)
+
+    def mark_finished(self):
+        with self.request_state_lock:
+            self.finished = True
+
     def wait_for_answer(self):
-        wait_path = f"/api/requests/{self.request_id}/wait?timeout={LONG_POLL_SECONDS}"
         deadline = time.monotonic() + OVERALL_WAIT_LIMIT_SECONDS
-        consecutive_failures = 0
-        while time.monotonic() < deadline:
+        coordinator_unreachable_since = None
+        while time.monotonic() < deadline and not self.finished:
+            wait_path = f"/api/requests/{self.request_id}/wait?timeout={LONG_POLL_SECONDS}"
             try:
                 status_code, response_body = send_json(
                     self.server_url, "GET", wait_path, None, LONG_POLL_HTTP_TIMEOUT_SECONDS
                 )
             except StreamDeckUnavailable:
-                consecutive_failures += 1
-                if consecutive_failures >= MAXIMUM_CONSECUTIVE_POLL_FAILURES:
-                    self.withdraw()
-                    return None
+                coordinator_unreachable_since = coordinator_unreachable_since or time.monotonic()
+                if time.monotonic() - coordinator_unreachable_since >= COORDINATOR_RETURN_WAIT_SECONDS:
+                    break
                 time.sleep(POLL_FAILURE_PAUSE_SECONDS)
                 continue
-            consecutive_failures = 0
+            coordinator_unreachable_since = None
+            if status_code == UNKNOWN_REQUEST_STATUS_CODE and self.republish_after_coordinator_restart():
+                continue
             if status_code != 200:
-                self.withdraw()
-                return None
+                break
             request_status = response_body.get("status")
             if request_status == "pending":
                 continue
-            self.finished = True
+            self.mark_finished()
             return response_body.get("answer") if request_status == "answered" else None
         self.withdraw()
         return None
@@ -425,16 +465,13 @@ def withdraw_when_answered_in_terminal(hook_input, pending_deck_request):
 
 def ask_stream_deck(configuration, hook_input, kind, payload):
     request_body = dict(session_identity(hook_input, configuration), kind=kind, payload=payload)
+    pending_deck_request = PendingDeckRequest(configuration["server_url"], request_body)
     try:
-        status_code, response_body = send_json(
-            configuration["server_url"], "POST", "/api/requests", request_body, SHORT_REQUEST_TIMEOUT_SECONDS
-        )
+        published = pending_deck_request.publish()
     except StreamDeckUnavailable:
         return None
-    request_id = response_body.get("request_id")
-    if status_code != 200 or response_body.get("status") != "pending" or not isinstance(request_id, str):
+    if not published:
         return None
-    pending_deck_request = PendingDeckRequest(configuration["server_url"], request_id)
     withdraw_on_termination(pending_deck_request)
     withdraw_when_answered_in_terminal(hook_input, pending_deck_request)
     return pending_deck_request.wait_for_answer()
