@@ -3,6 +3,7 @@ import json
 import os
 import re
 import signal
+import socket
 import subprocess
 import sys
 import threading
@@ -30,6 +31,13 @@ POLL_FAILURE_PAUSE_SECONDS = 2
 OVERALL_WAIT_LIMIT_SECONDS = 1780
 SHORT_SESSION_ID_LENGTH = 6
 TMUX_QUERY_TIMEOUT_SECONDS = 1
+PROCESS_QUERY_TIMEOUT_SECONDS = 1
+MAXIMUM_ANCESTOR_PROCESS_LEVELS = 5
+AGENT_NAME_ARGUMENT_PATTERN = re.compile(r"(?:^|\s)--agent-name[ =]([A-Za-z0-9_.-]{1,64})")
+AGENT_COLOR_ARGUMENT_PATTERN = re.compile(r"(?:^|\s)--agent-color[ =]([a-z]{1,16})")
+CLAUDE_EXECUTABLE_PATTERN = re.compile(r"^(?:\S*/)?claude(?:\s|$)|^\S*/claude/versions/\S+(?:\s|$)")
+PANE_TITLE_STATUS_PREFIX_PATTERN = re.compile(r"^[^\w(¿¡\"']+")
+GENERIC_PANE_TITLES = frozenset({"general-purpose", "claude", "claude code", "zsh", "bash", "-zsh", "nvim"})
 TRANSCRIPT_TAIL_BYTES = 256 * 1024
 TERMINAL_ANSWER_CHECK_INTERVAL_SECONDS = 1
 MAXIMUM_LAST_MESSAGE_CHARACTERS = 6000
@@ -129,30 +137,91 @@ def forget_session_title(session_id):
         return
 
 
-def tmux_window_label(project):
+def read_process_parent_and_command(process_id):
+    try:
+        process_output = subprocess.run(
+            ["ps", "-o", "ppid=,command=", "-p", str(process_id)],
+            capture_output=True,
+            text=True,
+            timeout=PROCESS_QUERY_TIMEOUT_SECONDS,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None, ""
+    parent_process_text, separator, command_line = process_output.partition(" ")
+    if not separator or not parent_process_text.isdigit():
+        return None, ""
+    return int(parent_process_text), command_line.strip()
+
+
+def find_teammate_identity():
+    process_id = os.getppid()
+    for unused_level in range(MAXIMUM_ANCESTOR_PROCESS_LEVELS):
+        if process_id is None or process_id <= 1:
+            return None, None
+        parent_process_id, command_line = read_process_parent_and_command(process_id)
+        if CLAUDE_EXECUTABLE_PATTERN.search(command_line):
+            agent_name_match = AGENT_NAME_ARGUMENT_PATTERN.search(command_line)
+            agent_color_match = AGENT_COLOR_ARGUMENT_PATTERN.search(command_line)
+            return (
+                agent_name_match.group(1) if agent_name_match else None,
+                agent_color_match.group(1) if agent_color_match else None,
+            )
+        process_id = parent_process_id
+    return None, None
+
+
+def read_tmux_pane_details():
     tmux_pane = os.environ.get("TMUX_PANE")
     if not tmux_pane:
         return None
     try:
         tmux_output = subprocess.run(
-            ["tmux", "display-message", "-p", "-t", tmux_pane, "#S\t#I"],
+            ["tmux", "display-message", "-p", "-t", tmux_pane, "#S\t#I\t#{pane_title}"],
             capture_output=True,
             text=True,
             timeout=TMUX_QUERY_TIMEOUT_SECONDS,
             check=True,
-        ).stdout.strip()
+        ).stdout.rstrip("\n")
     except (OSError, subprocess.SubprocessError):
         return None
-    tmux_session_name, separator, window_index = tmux_output.partition("\t")
-    if not separator or not window_index:
+    pane_fields = tmux_output.split("\t", 2)
+    if len(pane_fields) != 3 or not pane_fields[1]:
         return None
+    return pane_fields
+
+
+def meaningful_pane_title(raw_pane_title):
+    pane_title = PANE_TITLE_STATUS_PREFIX_PATTERN.sub("", raw_pane_title or "").strip()
+    if not pane_title or "/" in pane_title or pane_title.startswith("~"):
+        return None
+    if pane_title.lower() in GENERIC_PANE_TITLES or pane_title.lower().endswith(".local"):
+        return None
+    if pane_title.lower() == socket.gethostname().lower():
+        return None
+    return pane_title
+
+
+def tmux_session_label(project):
+    pane_details = read_tmux_pane_details()
+    if pane_details is None:
+        return None
+    tmux_session_name, window_index, raw_pane_title = pane_details
+    pane_title = meaningful_pane_title(raw_pane_title)
+    if pane_title:
+        return pane_title
     if tmux_session_name == project:
         return f"#{window_index}"
     return f"{tmux_session_name}#{window_index}"
 
 
-def session_label(session_id, project):
-    return recall_session_title(session_id) or tmux_window_label(project) or session_id[:SHORT_SESSION_ID_LENGTH]
+def session_label(session_id, project, teammate_name):
+    return (
+        teammate_name
+        or recall_session_title(session_id)
+        or tmux_session_label(project)
+        or session_id[:SHORT_SESSION_ID_LENGTH]
+    )
 
 
 def session_identity(hook_input, configuration):
@@ -160,13 +229,18 @@ def session_identity(hook_input, configuration):
     if not isinstance(session_id, str) or not session_id:
         session_id = "unknown"
     project = project_label(hook_input.get("cwd"))
+    teammate_name, teammate_color = find_teammate_identity()
     identity = {
         "machine": configuration["machine"],
         "session_id": session_id,
         "project": project,
-        "session_label": session_label(session_id, project),
+        "session_label": session_label(session_id, project, teammate_name),
         "deck_enabled_by_environment": deck_enabled_by_environment(),
+        "activity_event": hook_input.get("hook_event_name"),
+        "session_start_source": hook_input.get("source"),
     }
+    if teammate_color:
+        identity["teammate_color"] = teammate_color
     agent_type = hook_input.get("agent_type")
     if isinstance(agent_type, str) and agent_type:
         identity["agent_label"] = agent_type

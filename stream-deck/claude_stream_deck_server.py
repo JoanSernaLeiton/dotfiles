@@ -58,7 +58,7 @@ MAXIMUM_REQUEST_BODY_BYTES = 512 * 1024
 MAXIMUM_LAST_MESSAGE_CHARACTERS = 6000
 MAXIMUM_DETAIL_CHARACTERS = 4000
 MAXIMUM_PROJECT_CHARACTERS = 40
-MAXIMUM_SESSION_LABEL_CHARACTERS = 28
+MAXIMUM_SESSION_LABEL_CHARACTERS = 48
 MAXIMUM_AGENT_LABEL_CHARACTERS = 24
 MAXIMUM_READING_PAGES = 40
 MAXIMUM_QUESTIONS_PER_REQUEST = 4
@@ -66,35 +66,121 @@ MAXIMUM_OPTIONS_PER_QUESTION = 4
 MAXIMUM_CHUNK_CHARACTERS = 40
 PNG_PALETTE_COLOR_COUNT = 64
 PUSH_WORKER_COUNT = 4
-MAIN_KEY_BLINK_INTERVAL_SECONDS = 0.8
-MAIN_KEY_BLINK_DURATION_SECONDS = 60
-MAIN_KEY_ICON_DIAMETER = 40
-MAIN_KEY_ICON_TOP = 7
-MAIN_KEY_BADGE_RADIUS = 12
+MAIN_KEY_ANIMATION_FRAME_SECONDS = 0.12
+MAIN_KEY_ANIMATION_DURATION_SECONDS = 60
+MAIN_KEY_REMINDER_JUMP_INTERVAL_SECONDS = 15
+MAIN_KEY_BADGE_RADIUS = 10
+MAIN_KEY_BADGE_EDGE_MARGIN = 2
+MAIN_KEY_BADGE_SINGLE_DIGIT_FONT_SIZE = 13
+MAIN_KEY_BADGE_OVERFLOW_FONT_SIZE = 10
+MAIN_KEY_BADGE_MAXIMUM_EXACT_COUNT = 9
+MAIN_KEY_BADGE_OUTLINE_WIDTH = 2
 MAIN_KEY_BORDER_WIDTH = 3
 MAIN_KEY_LABEL_FONT_SIZE = 12
+MAIN_KEY_LABEL_TOP = 55
+MAIN_KEY_ALERT_MASCOT_PIXEL_UNIT = 3
+MAIN_KEY_ALERT_MASCOT_GROUND_TOP = 50
+MAIN_KEY_ALERT_MASCOT_HORIZONTAL_CENTER = 31
+MAIN_KEY_IDLE_MASCOT_PIXEL_UNIT = 4
+MASCOT_CANVAS_WIDTH_UNITS = 18
+MASCOT_STANDING_HEIGHT_UNITS = 10
+MASCOT_HEADROOM_UNITS = 1
+MASCOT_CANVAS_HEIGHT_UNITS = MASCOT_STANDING_HEIGHT_UNITS + MASCOT_HEADROOM_UNITS
+MASCOT_BODY_LEFT_UNIT = 3
+MASCOT_BODY_WIDTH_UNITS = 12
+MASCOT_BODY_HEIGHT_UNITS = 8
+MASCOT_LEG_HEIGHT_UNITS = 2
+MASCOT_LEG_COLUMN_UNITS = (4, 6, 11, 13)
+MASCOT_EYE_COLUMN_UNITS = (5, 12)
+MASCOT_EYE_TOP_OFFSET_UNITS = 2
+MASCOT_OPEN_EYE_HEIGHT_UNITS = 2
+MASCOT_CLOSED_EYE_HEIGHT_UNITS = 1
+MASCOT_ARM_WIDTH_UNITS = 2
+MASCOT_ARM_HEIGHT_UNITS = 2
+MASCOT_RESTING_ARM_TOP_OFFSET_UNITS = 4
+MASCOT_RAISED_ARM_TOP_OFFSET_UNITS = -1
+MASCOT_RAISED_ARM_HEIGHT_UNITS = 3
+MASCOT_SHADOW_HEIGHT = 4
+MASCOT_SHADOW_WEIGHT = 0.5
+MASCOT_SHADOW_SHRINK_PER_LIFT_UNIT = 0.09
+MASCOT_KEY_PIXEL_UNIT = 3
+MASCOT_KEY_GROUND_TOP = 44
+MASCOT_KEY_UNCAPTIONED_GROUND_TOP = 52
+MASCOT_KEY_CAPTION_TOP = 52
+MASCOT_KEY_CAPTION_MAXIMUM_FONT_SIZE = 12
+MASCOT_KEY_CAPTION_MINIMUM_FONT_SIZE = 9
+SESSIONS_TITLE_MASCOT_PIXEL_UNIT = 2
+SESSIONS_TITLE_MASCOT_GROUND_TOP = 30
+SESSIONS_TITLE_LABEL_TOP = 37
+SESSIONS_TITLE_FONT_SIZE = 14
+SESSIONS_TITLE_MACHINE_TOP = 54
+SLEEPING_MARK_PLACEMENTS = ((9, 55, 9), (12, 61, 0))
 ICON_SUPERSAMPLING_FACTOR = 4
-MAIN_KEY_IDLE_ICON_DIAMETER = 50
 ICON_GRID_SIZE = 24
-ICON_STROKE_WIDTH_IN_GRID = 2.0
+ICON_STROKE_WIDTH_IN_GRID = 2.6
 ICON_ARC_SEGMENT_COUNT = 48
-ICON_KEY_ICON_SIZE = 30
-ICON_KEY_ICON_TOP = 11
-ICON_KEY_COMPACT_ICON_SIZE = 24
+ICON_KEY_ICON_SIZE = 34
+ICON_KEY_ICON_TOP = 9
+ICON_KEY_COMPACT_ICON_SIZE = 26
 ICON_KEY_COMPACT_ICON_TOP = 20
-ICON_KEY_CAPTION_TOP = 5
-ICON_KEY_LABEL_TOP = 50
+ICON_KEY_SOLO_ICON_SIZE = 40
+ICON_KEY_CAPTION_TOP = 4
+ICON_KEY_LABEL_TOP = 52
 ICON_KEY_LABEL_FONT_SIZE = 12
 ICON_KEY_CAPTION_FONT_SIZE = 11
-SPARK_RAY_LENGTH_RATIOS = (1.0, 0.8, 0.94, 0.76, 1.0, 0.84, 0.9, 0.78, 0.97, 0.82, 0.9)
-SPARK_RAY_BASE_WIDTH_RATIO = 0.11
-SPARK_RAY_TIP_WIDTH_RATIO = 0.055
-SPARK_ROTATION_RADIANS = -math.pi / 2
+OPTION_KEY_MARGIN = 5
+OPTION_NUMBER_CHIP_DIAMETER = 18
+OPTION_NUMBER_FONT_SIZE = 12
+OPTION_CHECKBOX_SIZE = 16
+OPTION_CHECKBOX_OUTLINE_WIDTH = 2
+OPTION_CHECKBOX_CORNER_RADIUS = 4
+OPTION_CHECKBOX_CHECK_INSET = 2
+OPTION_MARKER_GAP = 4
+OPTION_RECOMMENDED_FONT_SIZE = 15
+RECOMMENDED_MARK_TEXT = "★"
+OPTION_LABEL_LINE_SPACING = 2
+OPTION_LABEL_AREA_TOP = 26
+OPTION_LABEL_FONT_SIZE_AND_LINE_COUNT_ATTEMPTS = ((16, 2), (14, 2), (13, 3), (12, 3), (11, 3))
+LEGEND_SWITCH_WIDTH = 30
+LEGEND_SWITCH_HEIGHT = 16
+LEGEND_SWITCH_TOP = 9
+LEGEND_TEXT_AREA_TOP = 31
+LEGEND_TEXT_FONT_SIZE_AND_LINE_COUNT_ATTEMPTS = ((13, 2), (12, 2), (11, 3))
 LABEL_CAPTION_FONT_SIZE = 12
 LABEL_STRIP_HEIGHT = 6
 LABEL_EDGE_MARGIN = 4
 PREVIEW_KEY_GAP = 12
 PREVIEW_MARGIN = 16
+SESSION_KEY_MARGIN = 5
+SESSION_KEY_BORDER_WIDTH = 2
+SESSION_KEY_TOP_ROW_TOP = 5
+SESSION_KEY_TOP_ROW_GAP = 4
+SESSION_KEY_SMALL_FONT_SIZE = 11
+SESSION_SWITCH_WIDTH = 22
+SESSION_SWITCH_HEIGHT = 12
+SESSION_TITLE_AREA_TOP = 19
+SESSION_TITLE_AREA_HEIGHT = 35
+SESSION_TITLE_FONT_SIZE_AND_LINE_COUNT_ATTEMPTS = ((14, 2), (13, 2), (12, 2), (11, 3))
+SESSION_TITLE_LINE_SPACING_UP_TO_TWO_LINES = 1
+TEAMMATE_STRIPE_WIDTH = 3
+TOGGLE_SWITCH_KNOB_INSET = 2
+STATUS_DOT_DIAMETER = 6
+STATUS_DOT_OUTLINE_WIDTH = 1.25
+STATUS_DOT_TEXT_GAP = 3
+MACHINE_SUMMARY_CAPTION_TOP = 5
+MACHINE_SUMMARY_HEADLINE_TOP = 21
+MACHINE_SUMMARY_HEADLINE_MAXIMUM_FONT_SIZE = 16
+MACHINE_SUMMARY_HEADLINE_MINIMUM_FONT_SIZE = 12
+MACHINE_KEY_FOOTER_MAXIMUM_FONT_SIZE = 12
+MACHINE_KEY_FOOTER_MINIMUM_FONT_SIZE = 10
+MACHINE_SUMMARY_DOTS_TOP = 43
+MACHINE_SESSION_DOT_DIAMETER = 6
+MACHINE_SESSION_DOT_GAP = 3
+MAXIMUM_MACHINE_SESSION_DOTS = 7
+SESSION_DOT_KIND_DISPLAY_ORDER = {"alert": 0, "on": 1, "off": 2}
+MACHINE_SWITCH_WIDTH = 38
+MACHINE_SWITCH_HEIGHT = 20
+MACHINE_SWITCH_TOP = 25
 
 REGULAR_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 BOLD_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -102,43 +188,86 @@ NARROW_REGULAR_FONT_PATH = "/usr/share/fonts/truetype/liberation/LiberationSansN
 NARROW_BOLD_FONT_PATH = "/usr/share/fonts/truetype/liberation/LiberationSansNarrow-Bold.ttf"
 SYMBOL_CHARACTERS = frozenset("▶▼★☐☑✓↺↩")
 
-PANEL_BACKGROUND_COLOR = (16, 16, 20)
-BODY_TEXT_COLOR = (238, 238, 238)
-MUTED_TEXT_COLOR = (150, 150, 162)
-MUTED_BODY_COLOR = (190, 190, 200)
-DARK_TEXT_COLOR = (24, 24, 24)
-CLAUDE_ACCENT_COLOR = (217, 119, 87)
-ALLOW_COLOR = (46, 125, 50)
-ALLOW_TEXT_COLOR = (102, 187, 106)
-ALLOW_ALWAYS_COLOR = (21, 101, 192)
-ALLOW_ALWAYS_TEXT_COLOR = (100, 170, 255)
-REJECT_COLOR = (198, 40, 40)
-REJECT_TEXT_COLOR = (239, 110, 110)
-NAVIGATION_COLOR = (44, 44, 50)
-ICON_COLOR = (240, 240, 244)
-NAVIGATION_LABEL_COLOR = (168, 168, 180)
-ACCENT_LABEL_COLOR = (245, 245, 245)
-ACCENT_CAPTION_COLOR = (225, 225, 230)
-TERMINAL_KEY_COLOR = (38, 50, 56)
-DISABLED_KEY_COLOR = (48, 48, 48)
-OPTION_BACKGROUND_COLOR = (38, 50, 56)
-OPTION_CHOSEN_COLOR = (0, 121, 107)
-RECOMMENDED_STRIP_COLOR = (102, 187, 106)
-PENDING_ALERT_COLOR = (198, 40, 40)
-WAITING_ALERT_COLOR = (255, 179, 0)
-IDLE_MAIN_KEY_COLOR = (32, 32, 36)
-MAIN_KEY_PENDING_BACKGROUND_COLOR = (96, 22, 22)
-MAIN_KEY_WAITING_BACKGROUND_COLOR = (54, 44, 18)
-PAUSED_MACHINE_COLOR = (60, 60, 64)
-HIDDEN_SESSION_BACKGROUND_COLOR = (26, 26, 30)
-VISIBLE_SESSION_TINT_WEIGHT = 0.45
+CLAUDE_CLAY_COLOR = (217, 119, 87)
+CLAUDE_CRAIL_COLOR = (193, 95, 60)
+CLAUDE_KRAFT_COLOR = (212, 162, 127)
+CLAUDE_MANILLA_COLOR = (235, 219, 188)
+CLAUDE_IVORY_COLOR = (250, 249, 245)
+CLAUDE_IVORY_MEDIUM_COLOR = (240, 240, 235)
+CLAUDE_SLATE_DARKEST_COLOR = (20, 20, 19)
+CLAUDE_SLATE_DARK_COLOR = (25, 25, 25)
+CLAUDE_SLATE_MEDIUM_COLOR = (38, 38, 37)
+CLAUDE_SLATE_SURFACE_COLOR = (48, 48, 46)
+CLAUDE_SLATE_LIGHT_COLOR = (64, 64, 62)
+CLAUDE_CLOUD_DARK_COLOR = (102, 102, 99)
+CLAUDE_CLOUD_MEDIUM_COLOR = (145, 145, 141)
+CLAUDE_CLOUD_LIGHT_COLOR = (191, 191, 186)
+CLAUDE_OLIVE_DEEP_COLOR = (92, 114, 62)
+CLAUDE_OLIVE_LIGHT_COLOR = (166, 190, 126)
+CLAUDE_SKY_DEEP_COLOR = (64, 110, 160)
+CLAUDE_SKY_LIGHT_COLOR = (130, 176, 226)
+CLAUDE_ERROR_COLOR = (191, 77, 67)
+CLAUDE_ERROR_LIGHT_COLOR = (236, 128, 114)
+CLAUDE_ATTENTION_COLOR = (232, 94, 74)
+CLAUDE_AMBER_COLOR = (236, 178, 92)
+
+PANEL_BACKGROUND_COLOR = CLAUDE_SLATE_DARKEST_COLOR
+BODY_TEXT_COLOR = CLAUDE_IVORY_MEDIUM_COLOR
+MUTED_TEXT_COLOR = CLAUDE_CLOUD_MEDIUM_COLOR
+MUTED_BODY_COLOR = CLAUDE_CLOUD_LIGHT_COLOR
+DARK_TEXT_COLOR = CLAUDE_SLATE_DARK_COLOR
+CLAUDE_ACCENT_COLOR = CLAUDE_CLAY_COLOR
+ALLOW_COLOR = CLAUDE_OLIVE_DEEP_COLOR
+ALLOW_TEXT_COLOR = CLAUDE_OLIVE_LIGHT_COLOR
+ALLOW_ALWAYS_COLOR = CLAUDE_SKY_DEEP_COLOR
+ALLOW_ALWAYS_TEXT_COLOR = CLAUDE_SKY_LIGHT_COLOR
+REJECT_COLOR = CLAUDE_ERROR_COLOR
+REJECT_TEXT_COLOR = CLAUDE_ERROR_LIGHT_COLOR
+PRIMARY_ACTION_COLOR = CLAUDE_CRAIL_COLOR
+NAVIGATION_COLOR = CLAUDE_SLATE_SURFACE_COLOR
+ICON_COLOR = CLAUDE_IVORY_COLOR
+NAVIGATION_LABEL_COLOR = CLAUDE_CLOUD_LIGHT_COLOR
+ACCENT_LABEL_COLOR = CLAUDE_IVORY_COLOR
+ACCENT_CAPTION_COLOR = CLAUDE_IVORY_MEDIUM_COLOR
+TERMINAL_KEY_COLOR = CLAUDE_SLATE_MEDIUM_COLOR
+DISABLED_KEY_COLOR = CLAUDE_SLATE_LIGHT_COLOR
+OPTION_BACKGROUND_COLOR = (54, 50, 46)
+OPTION_CHOSEN_COLOR = CLAUDE_OLIVE_DEEP_COLOR
+OPTION_NUMBER_CHIP_COLOR = CLAUDE_CLAY_COLOR
+RECOMMENDED_MARK_COLOR = CLAUDE_KRAFT_COLOR
+PENDING_ALERT_COLOR = CLAUDE_ATTENTION_COLOR
+WAITING_ALERT_COLOR = CLAUDE_AMBER_COLOR
+IDLE_MAIN_KEY_COLOR = CLAUDE_SLATE_MEDIUM_COLOR
+MAIN_KEY_PENDING_BACKGROUND_COLOR = (88, 32, 26)
+MAIN_KEY_WAITING_BACKGROUND_COLOR = (62, 46, 24)
+MASCOT_BODY_COLOR = CLAUDE_CLAY_COLOR
+MASCOT_EYE_COLOR = CLAUDE_SLATE_DARK_COLOR
+MASCOT_SHADOW_COLOR = (0, 0, 0)
+MASCOT_SLEEPING_BODY_COLOR = (150, 96, 78)
+PAUSED_MACHINE_COLOR = CLAUDE_SLATE_LIGHT_COLOR
+HIDDEN_SESSION_BACKGROUND_COLOR = (26, 26, 25)
+HIDDEN_SESSION_TITLE_COLOR = CLAUDE_CLOUD_MEDIUM_COLOR
+HIDDEN_SESSION_PROJECT_COLOR = CLAUDE_CLOUD_DARK_COLOR
+HIDDEN_SESSION_STATUS_TEXT_COLOR = (125, 125, 121)
+VISIBLE_SESSION_PROJECT_COLOR = CLAUDE_MANILLA_COLOR
+VISIBLE_SESSION_TINT_WEIGHT = 0.32
+PENDING_CARD_TINT_WEIGHT = 0.3
 MACHINE_WITHOUT_VISIBLE_SESSIONS_TINT_WEIGHT = 0.35
-WAITING_SESSION_BACKGROUND_COLOR = (34, 40, 46)
-PENDING_LIST_BACKGROUND_COLOR = (110, 28, 28)
-SENT_BACKGROUND_COLOR = (27, 94, 32)
-RELEASED_BACKGROUND_COLOR = (55, 71, 79)
+SWITCH_ON_TRACK_COLOR = CLAUDE_CLAY_COLOR
+SWITCH_OFF_TRACK_COLOR = CLAUDE_SLATE_LIGHT_COLOR
+SWITCH_OFF_TRACK_ON_MATCHING_BACKGROUND_COLOR = CLAUDE_SLATE_DARKEST_COLOR
+SWITCH_TRACK_MINIMUM_BRIGHTNESS_DIFFERENCE = 60
+TOGGLE_SWITCH_ON_KNOB_COLOR = CLAUDE_IVORY_COLOR
+TOGGLE_SWITCH_OFF_KNOB_COLOR = CLAUDE_CLOUD_MEDIUM_COLOR
+HIDDEN_SESSION_DOT_OUTLINE_COLOR = CLAUDE_IVORY_MEDIUM_COLOR
+NEW_SESSION_STATUS_COLOR = CLAUDE_CLOUD_MEDIUM_COLOR
+WORKING_SESSION_STATUS_COLOR = CLAUDE_SKY_LIGHT_COLOR
+FINISHED_SESSION_STATUS_COLOR = CLAUDE_AMBER_COLOR
+WAITING_SESSION_BACKGROUND_COLOR = CLAUDE_SLATE_MEDIUM_COLOR
+SENT_BACKGROUND_COLOR = (58, 74, 38)
+RELEASED_BACKGROUND_COLOR = CLAUDE_SLATE_LIGHT_COLOR
 EMPTY_KEY_COLOR = (0, 0, 0)
-UNKNOWN_MACHINE_COLOR = (120, 120, 120)
+UNKNOWN_MACHINE_COLOR = CLAUDE_CLOUD_DARK_COLOR
 PREVIEW_BACKGROUND_COLOR = (70, 70, 74)
 BANNER_MACHINE_TINT_WEIGHT = 0.16
 
@@ -166,8 +295,8 @@ class MachineDisplay:
 
 
 KNOWN_MACHINE_DISPLAYS = {
-    "personal": MachineDisplay("PERSONAL", (126, 87, 194)),
-    "trabajo": MachineDisplay("TRABAJO", (2, 136, 209)),
+    "personal": MachineDisplay("PERSONAL", (118, 96, 166)),
+    "trabajo": MachineDisplay("TRABAJO", (58, 118, 176)),
 }
 
 
@@ -193,13 +322,63 @@ BANNER_KEY_ROWS = ((0, TEXT_COLUMNS_BESIDE_IDENTITY),)
 FULL_TEXT_KEY_ROWS = ((0, TEXT_COLUMNS_BESIDE_IDENTITY), (1, ALL_COLUMNS), (2, (1, 2, 3)))
 WAITING_READING_KEY_ROWS = ((0, TEXT_COLUMNS_BESIDE_IDENTITY), (1, ALL_COLUMNS), (2, (1, 2)))
 EMPTY_HOME_MESSAGE_KEY_ROWS = ((1, (1, 2, 3)),)
-SESSIONS_BANNER_KEY_ROWS = ((0, (1, 2, 3)),)
+EMPTY_HOME_MASCOT_KEY_LOCATION = (1, 2)
+EMPTY_HOME_CAPTION = "nada pendiente"
+HOME_CLAUDE_KEY_LOCATION = (0, 2)
+SESSIONS_PAUSED_HINT_KEY_ROWS = ((0, (2, 3)),)
 SESSIONS_BACK_KEY_LOCATION = (0, 0)
+SESSIONS_TITLE_KEY_LOCATION = (0, 1)
+SESSIONS_LEGEND_ON_KEY_LOCATION = (0, 2)
+SESSIONS_LEGEND_OFF_KEY_LOCATION = (0, 3)
 SESSIONS_MACHINE_PAUSE_KEY_LOCATION = (0, 4)
 HOME_LIST_LOCATIONS = tuple((row, column) for row in (1, 2) for column in ALL_COLUMNS)
 REQUEST_KIND_LABELS = {"question": "pregunta", "permission": "permiso"}
-VISIBLE_SESSION_CAPTION = "EN EL DECK"
-HIDDEN_SESSION_CAPTION = "OCULTA"
+SESSIONS_LEGEND_SWITCH_ON_TEXT = "te avisa aquí"
+SESSIONS_LEGEND_SWITCH_OFF_TEXT = "solo en la terminal"
+SESSIONS_BANNER_PAUSED_HINT = "Mac en pausa: todo queda en la terminal"
+MACHINE_ROUTING_ON_TEXT = "Mac activa"
+MACHINE_ROUTING_OFF_TEXT = "Mac en pausa"
+AUTO_OPEN_ON_TEXT = "se abre sola"
+AUTO_OPEN_OFF_TEXT = "no se abre"
+SENT_SCREEN_CAPTION_KEY_LOCATION = (1, 2)
+SENT_SCREEN_SYMBOL_KEY_LOCATION = (1, 1)
+SENT_SCREEN_MACHINE_KEY_LOCATION = (1, 3)
+SESSION_ACTIVITY_NEW = "new"
+SESSION_ACTIVITY_WORKING = "working"
+SESSION_ACTIVITY_FINISHED = "finished"
+ACTIVITY_STATE_BY_HOOK_EVENT = {
+    "UserPromptSubmit": SESSION_ACTIVITY_WORKING,
+    "PermissionRequest": SESSION_ACTIVITY_WORKING,
+    "Stop": SESSION_ACTIVITY_FINISHED,
+}
+SESSION_START_SOURCES_KEEPING_ACTIVITY = frozenset({"compact"})
+TEAMMATE_COLORS = {
+    "red": (239, 83, 80),
+    "blue": (66, 165, 245),
+    "green": (102, 187, 106),
+    "yellow": (255, 213, 79),
+    "purple": (171, 71, 188),
+    "orange": (255, 152, 0),
+    "pink": (240, 98, 146),
+    "cyan": (38, 198, 218),
+}
+
+
+@dataclass(frozen=True)
+class SessionStatusPresentation:
+    text: str
+    color: tuple
+    shows_elapsed_time: bool
+    demands_attention: bool
+
+
+SESSION_STATUS_PRESENTATIONS = {
+    SESSION_ACTIVITY_NEW: SessionStatusPresentation("nueva", NEW_SESSION_STATUS_COLOR, False, False),
+    SESSION_ACTIVITY_WORKING: SessionStatusPresentation("trabajando", WORKING_SESSION_STATUS_COLOR, False, False),
+    SESSION_ACTIVITY_FINISHED: SessionStatusPresentation("listo", FINISHED_SESSION_STATUS_COLOR, True, False),
+    "question": SessionStatusPresentation("te pregunta", PENDING_ALERT_COLOR, False, True),
+    "permission": SessionStatusPresentation("pide permiso", PENDING_ALERT_COLOR, False, True),
+}
 
 
 @lru_cache(maxsize=64)
@@ -670,10 +849,228 @@ def render_icon_key(design):
         caption_font = load_font(label_font_path(design.caption_text, True), ICON_KEY_CAPTION_FONT_SIZE)
         draw_centered_single_line(drawing, design.caption_text, caption_font, ICON_KEY_CAPTION_TOP, design.caption_color)
         icon_size, icon_top = ICON_KEY_COMPACT_ICON_SIZE, ICON_KEY_COMPACT_ICON_TOP
+    elif not design.label_text:
+        icon_size = ICON_KEY_SOLO_ICON_SIZE
+        icon_top = (KEY_PIXEL_SIZE - icon_size) // 2
     icon_image = render_line_icon(design.icon_name, icon_size, design.icon_color)
     image.paste(icon_image, ((KEY_PIXEL_SIZE - icon_size) // 2, icon_top), icon_image)
-    label_font = load_font(NARROW_BOLD_FONT_PATH, ICON_KEY_LABEL_FONT_SIZE)
-    draw_centered_single_line(drawing, design.label_text, label_font, ICON_KEY_LABEL_TOP, design.label_color)
+    if design.label_text:
+        label_font = load_font(NARROW_BOLD_FONT_PATH, ICON_KEY_LABEL_FONT_SIZE)
+        draw_centered_single_line(drawing, design.label_text, label_font, ICON_KEY_LABEL_TOP, design.label_color)
+    return image
+
+
+def off_track_color_contrasting_with(background_color):
+    brightness_difference = abs(sum(background_color) - sum(SWITCH_OFF_TRACK_COLOR))
+    if brightness_difference >= SWITCH_TRACK_MINIMUM_BRIGHTNESS_DIFFERENCE:
+        return SWITCH_OFF_TRACK_COLOR
+    return SWITCH_OFF_TRACK_ON_MATCHING_BACKGROUND_COLOR
+
+
+@lru_cache(maxsize=32)
+def render_toggle_switch(switch_width, switch_height, switch_is_on, track_color):
+    canvas_width = switch_width * ICON_SUPERSAMPLING_FACTOR
+    canvas_height = switch_height * ICON_SUPERSAMPLING_FACTOR
+    switch_image = Image.new("RGBA", (canvas_width, canvas_height), (0, 0, 0, 0))
+    drawing = ImageDraw.Draw(switch_image)
+    drawing.rounded_rectangle(
+        [0, 0, canvas_width - 1, canvas_height - 1], radius=canvas_height // 2, fill=track_color
+    )
+    knob_inset = TOGGLE_SWITCH_KNOB_INSET * ICON_SUPERSAMPLING_FACTOR
+    knob_diameter = canvas_height - 2 * knob_inset
+    knob_left = canvas_width - knob_inset - knob_diameter if switch_is_on else knob_inset
+    knob_color = TOGGLE_SWITCH_ON_KNOB_COLOR if switch_is_on else TOGGLE_SWITCH_OFF_KNOB_COLOR
+    drawing.ellipse([knob_left, knob_inset, knob_left + knob_diameter, knob_inset + knob_diameter], fill=knob_color)
+    return switch_image.resize((switch_width, switch_height), Image.LANCZOS)
+
+
+@lru_cache(maxsize=32)
+def render_status_dot(dot_diameter, fill_color, outline_color):
+    canvas_size = dot_diameter * ICON_SUPERSAMPLING_FACTOR
+    dot_image = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
+    drawing = ImageDraw.Draw(dot_image)
+    outline_width = round(STATUS_DOT_OUTLINE_WIDTH * ICON_SUPERSAMPLING_FACTOR) if outline_color else 0
+    drawing.ellipse(
+        [0, 0, canvas_size - 1, canvas_size - 1], fill=fill_color, outline=outline_color, width=outline_width
+    )
+    return dot_image.resize((dot_diameter, dot_diameter), Image.LANCZOS)
+
+
+def paste_centered_horizontally(image, overlay_image, vertical_position):
+    image.paste(overlay_image, ((KEY_PIXEL_SIZE - overlay_image.width) // 2, vertical_position), overlay_image)
+
+
+def fit_text_into_line_layouts(text, font_path, maximum_width, font_size_and_line_count_attempts):
+    for allow_word_splitting in (False, True):
+        for font_size, maximum_line_count in font_size_and_line_count_attempts:
+            font = load_font(font_path, font_size)
+            wrapped_lines = wrap_text_to_width(text, font, maximum_width, allow_word_splitting)
+            if wrapped_lines is not None and len(wrapped_lines) <= maximum_line_count:
+                return font, wrapped_lines
+    last_font_size, last_maximum_line_count = font_size_and_line_count_attempts[-1]
+    font = load_font(font_path, last_font_size)
+    all_wrapped_lines = wrap_text_to_width(text, font, maximum_width, True)
+    wrapped_lines = all_wrapped_lines[:last_maximum_line_count]
+    if len(all_wrapped_lines) > last_maximum_line_count:
+        wrapped_lines[-1] = ellipsize_to_width(wrapped_lines[-1] + " " + all_wrapped_lines[last_maximum_line_count], font, maximum_width)
+    return font, wrapped_lines
+
+
+def draw_single_line_at(drawing, text, font, horizontal_position, vertical_position, maximum_width, color):
+    fitted_text = text if font.getlength(text) <= maximum_width else ellipsize_to_width(text, font, maximum_width)
+    drawing.text((horizontal_position, vertical_position), fitted_text, font=font, fill=color)
+
+
+def draw_centered_fitting_line(drawing, text, font_path, maximum_font_size, minimum_font_size, slot_top, color):
+    available_width = KEY_PIXEL_SIZE - 2 * LABEL_HORIZONTAL_PADDING
+    chosen_font = load_font(font_path, minimum_font_size)
+    for font_size in range(maximum_font_size, minimum_font_size - 1, -1):
+        candidate_font = load_font(font_path, font_size)
+        if candidate_font.getlength(text) <= available_width:
+            chosen_font = candidate_font
+            break
+    vertically_centered_top = slot_top + (maximum_font_size - chosen_font.size) // 2
+    draw_centered_single_line(drawing, text, chosen_font, vertically_centered_top, color)
+
+
+@dataclass(frozen=True)
+class SessionKeyDesign:
+    title_text: str
+    project_text: str
+    status_text: str
+    status_color: tuple
+    status_text_color: tuple
+    background_color: tuple
+    title_color: tuple
+    project_color: tuple
+    switch_is_on: bool
+    switch_track_color: tuple
+    teammate_color: tuple = None
+    border_color: tuple = None
+    shows_switch: bool = True
+    project_text_is_bold: bool = False
+
+
+@lru_cache(maxsize=256)
+def render_session_key(design):
+    image = Image.new("RGB", (KEY_PIXEL_SIZE, KEY_PIXEL_SIZE), design.background_color)
+    drawing = ImageDraw.Draw(image)
+    if design.border_color is not None:
+        drawing.rectangle(
+            [0, 0, KEY_PIXEL_SIZE - 1, KEY_PIXEL_SIZE - 1], outline=design.border_color, width=SESSION_KEY_BORDER_WIDTH
+        )
+    if design.teammate_color is not None:
+        drawing.rectangle([0, 0, TEAMMATE_STRIPE_WIDTH - 1, KEY_PIXEL_SIZE - 1], fill=design.teammate_color)
+    content_left = SESSION_KEY_MARGIN
+    content_width = KEY_PIXEL_SIZE - 2 * SESSION_KEY_MARGIN
+    top_row_right_edge = KEY_PIXEL_SIZE - SESSION_KEY_MARGIN
+    if design.shows_switch:
+        switch_image = render_toggle_switch(
+            SESSION_SWITCH_WIDTH, SESSION_SWITCH_HEIGHT, design.switch_is_on, design.switch_track_color
+        )
+        switch_left = KEY_PIXEL_SIZE - SESSION_KEY_MARGIN - SESSION_SWITCH_WIDTH
+        image.paste(switch_image, (switch_left, SESSION_KEY_TOP_ROW_TOP), switch_image)
+        top_row_right_edge = switch_left - SESSION_KEY_TOP_ROW_GAP
+    project_font = load_font(
+        label_font_path(design.project_text, design.project_text_is_bold), SESSION_KEY_SMALL_FONT_SIZE
+    )
+    draw_single_line_at(
+        drawing,
+        design.project_text,
+        project_font,
+        content_left,
+        SESSION_KEY_TOP_ROW_TOP - 1,
+        top_row_right_edge - content_left,
+        design.project_color,
+    )
+    title_font, title_lines = fit_text_into_line_layouts(
+        design.title_text,
+        label_font_path(design.title_text, True),
+        content_width,
+        SESSION_TITLE_FONT_SIZE_AND_LINE_COUNT_ATTEMPTS,
+    )
+    title_line_spacing = SESSION_TITLE_LINE_SPACING_UP_TO_TWO_LINES if len(title_lines) <= 2 else 0
+    title_line_height = title_font.size + title_line_spacing
+    title_block_height = len(title_lines) * title_line_height
+    title_top = SESSION_TITLE_AREA_TOP + (SESSION_TITLE_AREA_HEIGHT - title_block_height) // 2
+    for line_position, line_text in enumerate(title_lines):
+        drawing.text(
+            (content_left, title_top + line_position * title_line_height),
+            line_text,
+            font=title_font,
+            fill=design.title_color,
+        )
+    status_dot = render_status_dot(STATUS_DOT_DIAMETER, design.status_color, None)
+    status_text_top = KEY_PIXEL_SIZE - SESSION_KEY_MARGIN - SESSION_KEY_SMALL_FONT_SIZE - 1
+    status_dot_top = status_text_top + (SESSION_KEY_SMALL_FONT_SIZE + 2 - STATUS_DOT_DIAMETER) // 2 + 1
+    image.paste(status_dot, (content_left, status_dot_top), status_dot)
+    status_text_left = content_left + STATUS_DOT_DIAMETER + STATUS_DOT_TEXT_GAP
+    status_font = load_font(label_font_path(design.status_text, False), SESSION_KEY_SMALL_FONT_SIZE)
+    draw_single_line_at(
+        drawing,
+        design.status_text,
+        status_font,
+        status_text_left,
+        status_text_top,
+        KEY_PIXEL_SIZE - SESSION_KEY_MARGIN - status_text_left,
+        design.status_text_color,
+    )
+    return image
+
+
+@dataclass(frozen=True)
+class MachineSummaryDesign:
+    machine_label: str
+    headline_text: str
+    footer_text: str
+    background_color: tuple
+    session_dot_kinds: tuple
+    headline_color: tuple = BODY_TEXT_COLOR
+    footer_color: tuple = ACCENT_CAPTION_COLOR
+
+
+def session_dot_image(session_dot_kind):
+    if session_dot_kind == "alert":
+        return render_status_dot(MACHINE_SESSION_DOT_DIAMETER, PENDING_ALERT_COLOR, None)
+    if session_dot_kind == "on":
+        return render_status_dot(MACHINE_SESSION_DOT_DIAMETER, ICON_COLOR, None)
+    return render_status_dot(MACHINE_SESSION_DOT_DIAMETER, None, HIDDEN_SESSION_DOT_OUTLINE_COLOR)
+
+
+@lru_cache(maxsize=64)
+def render_machine_summary_key(design):
+    image = Image.new("RGB", (KEY_PIXEL_SIZE, KEY_PIXEL_SIZE), design.background_color)
+    drawing = ImageDraw.Draw(image)
+    caption_font = load_font(NARROW_BOLD_FONT_PATH, LABEL_CAPTION_FONT_SIZE)
+    draw_centered_single_line(drawing, design.machine_label, caption_font, MACHINE_SUMMARY_CAPTION_TOP, ACCENT_CAPTION_COLOR)
+    draw_centered_fitting_line(
+        drawing,
+        design.headline_text,
+        label_font_path(design.headline_text, True),
+        MACHINE_SUMMARY_HEADLINE_MAXIMUM_FONT_SIZE,
+        MACHINE_SUMMARY_HEADLINE_MINIMUM_FONT_SIZE,
+        MACHINE_SUMMARY_HEADLINE_TOP,
+        design.headline_color,
+    )
+    sorted_dot_kinds = sorted(design.session_dot_kinds, key=SESSION_DOT_KIND_DISPLAY_ORDER.__getitem__)
+    visible_dot_kinds = sorted_dot_kinds[:MAXIMUM_MACHINE_SESSION_DOTS]
+    if visible_dot_kinds:
+        dots_width = len(visible_dot_kinds) * MACHINE_SESSION_DOT_DIAMETER + (len(visible_dot_kinds) - 1) * MACHINE_SESSION_DOT_GAP
+        dot_left = (KEY_PIXEL_SIZE - dots_width) // 2
+        for session_dot_kind in visible_dot_kinds:
+            dot_image = session_dot_image(session_dot_kind)
+            image.paste(dot_image, (dot_left, MACHINE_SUMMARY_DOTS_TOP), dot_image)
+            dot_left += MACHINE_SESSION_DOT_DIAMETER + MACHINE_SESSION_DOT_GAP
+    footer_top = KEY_PIXEL_SIZE - LABEL_EDGE_MARGIN - MACHINE_KEY_FOOTER_MAXIMUM_FONT_SIZE - 1
+    draw_centered_fitting_line(
+        drawing,
+        design.footer_text,
+        label_font_path(design.footer_text, False),
+        MACHINE_KEY_FOOTER_MAXIMUM_FONT_SIZE,
+        MACHINE_KEY_FOOTER_MINIMUM_FONT_SIZE,
+        footer_top,
+        design.footer_color,
+    )
     return image
 
 
@@ -717,62 +1114,294 @@ def render_identity_key(machine, project, session_label, footer_text):
     )
 
 
+@dataclass(frozen=True)
+class OptionKeyDesign:
+    option_number: int
+    label_text: str
+    multi_select: bool
+    chosen: bool
+    recommended: bool
+
+
+def option_label_without_recommendation(label):
+    return RECOMMENDED_SUFFIX_PATTERN.sub("", label).strip() or label
+
+
 def option_key_design(option_index, label, multi_select, chosen):
     recommended = RECOMMENDED_SUFFIX_PATTERN.search(label) is not None
-    clean_label = RECOMMENDED_SUFFIX_PATTERN.sub("", label).strip() or label
-    caption_parts = []
-    if multi_select:
-        caption_parts.append("☑" if chosen else "☐")
-    caption_parts.append(str(option_index + 1))
-    if recommended:
-        caption_parts.append("★")
-    return LabelKeyDesign(
-        primary_text=clean_label,
-        background_color=OPTION_CHOSEN_COLOR if chosen else OPTION_BACKGROUND_COLOR,
-        caption_text=" ".join(caption_parts),
-        caption_color=BODY_TEXT_COLOR if chosen else CLAUDE_ACCENT_COLOR,
-        top_strip_color=RECOMMENDED_STRIP_COLOR if recommended else None,
-        maximum_font_size=16,
+    clean_label = option_label_without_recommendation(label)
+    return OptionKeyDesign(
+        option_number=option_index + 1,
+        label_text=clean_label,
+        multi_select=multi_select,
+        chosen=chosen,
+        recommended=recommended,
     )
 
 
-def offset_point(origin_x, origin_y, direction, distance):
-    return (origin_x + direction[0] * distance, origin_y + direction[1] * distance)
+@lru_cache(maxsize=32)
+def render_number_chip(number, diameter, chip_color, number_color):
+    canvas_size = diameter * ICON_SUPERSAMPLING_FACTOR
+    chip_image = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
+    drawing = ImageDraw.Draw(chip_image)
+    drawing.ellipse([0, 0, canvas_size - 1, canvas_size - 1], fill=chip_color)
+    number_font = load_font(BOLD_FONT_PATH, OPTION_NUMBER_FONT_SIZE * ICON_SUPERSAMPLING_FACTOR)
+    drawing.text((canvas_size / 2, canvas_size / 2), str(number), font=number_font, fill=number_color, anchor="mm")
+    return chip_image.resize((diameter, diameter), Image.LANCZOS)
 
 
 @lru_cache(maxsize=4)
-def render_claude_spark_icon(diameter, color):
-    canvas_size = diameter * ICON_SUPERSAMPLING_FACTOR
-    icon_image = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
-    drawing = ImageDraw.Draw(icon_image)
-    center = canvas_size / 2
-    base_half_width = canvas_size * SPARK_RAY_BASE_WIDTH_RATIO / 2
-    tip_half_width = canvas_size * SPARK_RAY_TIP_WIDTH_RATIO / 2
-    for ray_position, length_ratio in enumerate(SPARK_RAY_LENGTH_RATIOS):
-        angle = SPARK_ROTATION_RADIANS + 2 * math.pi * ray_position / len(SPARK_RAY_LENGTH_RATIOS)
-        direction = (math.cos(angle), math.sin(angle))
-        perpendicular = (-direction[1], direction[0])
-        tip_x, tip_y = offset_point(center, center, direction, (center - tip_half_width) * length_ratio)
-        drawing.polygon(
-            [
-                offset_point(center, center, perpendicular, base_half_width),
-                offset_point(tip_x, tip_y, perpendicular, tip_half_width),
-                offset_point(tip_x, tip_y, perpendicular, -tip_half_width),
-                offset_point(center, center, perpendicular, -base_half_width),
-            ],
-            fill=color,
+def render_option_checkbox(checked):
+    canvas_size = OPTION_CHECKBOX_SIZE * ICON_SUPERSAMPLING_FACTOR
+    corner_radius = OPTION_CHECKBOX_CORNER_RADIUS * ICON_SUPERSAMPLING_FACTOR
+    checkbox_image = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
+    drawing = ImageDraw.Draw(checkbox_image)
+    if checked:
+        drawing.rounded_rectangle([0, 0, canvas_size - 1, canvas_size - 1], radius=corner_radius, fill=CLAUDE_IVORY_COLOR)
+    else:
+        drawing.rounded_rectangle(
+            [0, 0, canvas_size - 1, canvas_size - 1],
+            radius=corner_radius,
+            outline=CLAUDE_CLOUD_LIGHT_COLOR,
+            width=OPTION_CHECKBOX_OUTLINE_WIDTH * ICON_SUPERSAMPLING_FACTOR,
         )
-        drawing.ellipse(
-            [tip_x - tip_half_width, tip_y - tip_half_width, tip_x + tip_half_width, tip_y + tip_half_width], fill=color
-        )
-    hub_radius = base_half_width * 1.6
-    drawing.ellipse([center - hub_radius, center - hub_radius, center + hub_radius, center + hub_radius], fill=color)
-    return icon_image.resize((diameter, diameter), Image.LANCZOS)
+    checkbox_image = checkbox_image.resize((OPTION_CHECKBOX_SIZE, OPTION_CHECKBOX_SIZE), Image.LANCZOS)
+    if checked:
+        check_size = OPTION_CHECKBOX_SIZE - 2 * OPTION_CHECKBOX_CHECK_INSET
+        check_image = render_line_icon("check", check_size, OPTION_CHOSEN_COLOR)
+        checkbox_image.alpha_composite(check_image, (OPTION_CHECKBOX_CHECK_INSET, OPTION_CHECKBOX_CHECK_INSET))
+    return checkbox_image
 
 
-def draw_count_badge(drawing, count, badge_color, text_color):
-    badge_center_x = KEY_PIXEL_SIZE - MAIN_KEY_BADGE_RADIUS - 2
-    badge_center_y = MAIN_KEY_BADGE_RADIUS + 2
+@lru_cache(maxsize=256)
+def render_option_key(design):
+    background_color = OPTION_CHOSEN_COLOR if design.chosen else OPTION_BACKGROUND_COLOR
+    image = Image.new("RGB", (KEY_PIXEL_SIZE, KEY_PIXEL_SIZE), background_color)
+    drawing = ImageDraw.Draw(image)
+    if design.chosen:
+        chip_color, number_color = CLAUDE_IVORY_COLOR, OPTION_CHOSEN_COLOR
+    else:
+        chip_color, number_color = OPTION_NUMBER_CHIP_COLOR, DARK_TEXT_COLOR
+    number_chip = render_number_chip(design.option_number, OPTION_NUMBER_CHIP_DIAMETER, chip_color, number_color)
+    image.paste(number_chip, (OPTION_KEY_MARGIN, OPTION_KEY_MARGIN), number_chip)
+    marker_row_center = OPTION_KEY_MARGIN + OPTION_NUMBER_CHIP_DIAMETER / 2
+    marker_right_edge = KEY_PIXEL_SIZE - OPTION_KEY_MARGIN
+    if design.multi_select:
+        checkbox_image = render_option_checkbox(design.chosen)
+        checkbox_left = marker_right_edge - OPTION_CHECKBOX_SIZE
+        image.paste(checkbox_image, (checkbox_left, round(marker_row_center - OPTION_CHECKBOX_SIZE / 2)), checkbox_image)
+        marker_right_edge = checkbox_left - OPTION_MARKER_GAP
+    if design.recommended:
+        star_font = load_font(BOLD_FONT_PATH, OPTION_RECOMMENDED_FONT_SIZE)
+        star_color = CLAUDE_IVORY_COLOR if design.chosen else RECOMMENDED_MARK_COLOR
+        star_left = marker_right_edge - star_font.getlength(RECOMMENDED_MARK_TEXT)
+        drawing.text((star_left, marker_row_center), RECOMMENDED_MARK_TEXT, font=star_font, fill=star_color, anchor="lm")
+    label_font, label_lines = fit_text_into_line_layouts(
+        design.label_text,
+        label_font_path(design.label_text, True),
+        KEY_PIXEL_SIZE - 2 * OPTION_KEY_MARGIN,
+        OPTION_LABEL_FONT_SIZE_AND_LINE_COUNT_ATTEMPTS,
+    )
+    line_height = label_font.size + (OPTION_LABEL_LINE_SPACING if len(label_lines) <= 2 else 0)
+    label_area_height = KEY_PIXEL_SIZE - OPTION_LABEL_AREA_TOP - OPTION_KEY_MARGIN
+    label_block_top = OPTION_LABEL_AREA_TOP + (label_area_height - len(label_lines) * line_height) // 2
+    label_color = CLAUDE_IVORY_COLOR if design.chosen else BODY_TEXT_COLOR
+    for line_position, line_text in enumerate(label_lines):
+        draw_centered_single_line(drawing, line_text, label_font, label_block_top + line_position * line_height, label_color)
+    return image
+
+
+@dataclass(frozen=True)
+class MascotPose:
+    lift_units: int = 0
+    crouch_units: int = 0
+    arms_raised: bool = False
+    eyes_closed: bool = False
+
+
+MASCOT_STANDING_POSE = MascotPose()
+MASCOT_CROUCHING_POSE = MascotPose(crouch_units=1)
+MASCOT_CHEERING_POSE = MascotPose(arms_raised=True)
+MASCOT_SLEEPING_POSE = MascotPose(eyes_closed=True)
+MASCOT_JUMP_ANIMATION_POSES = (
+    MASCOT_STANDING_POSE,
+    MASCOT_CROUCHING_POSE,
+    MascotPose(lift_units=2),
+    MascotPose(lift_units=4),
+    MascotPose(lift_units=4),
+    MascotPose(lift_units=2),
+    MASCOT_CROUCHING_POSE,
+    MASCOT_STANDING_POSE,
+    MASCOT_STANDING_POSE,
+    MASCOT_STANDING_POSE,
+    MASCOT_STANDING_POSE,
+    MASCOT_STANDING_POSE,
+)
+
+
+def fill_mascot_cells(drawing, pixel_unit, left_unit, top_unit, width_units, height_units, color):
+    drawing.rectangle(
+        [
+            left_unit * pixel_unit,
+            top_unit * pixel_unit,
+            (left_unit + width_units) * pixel_unit - 1,
+            (top_unit + height_units) * pixel_unit - 1,
+        ],
+        fill=color,
+    )
+
+
+@lru_cache(maxsize=64)
+def render_claude_mascot(pixel_unit, pose, body_color):
+    canvas = Image.new(
+        "RGBA", (MASCOT_CANVAS_WIDTH_UNITS * pixel_unit, MASCOT_CANVAS_HEIGHT_UNITS * pixel_unit), (0, 0, 0, 0)
+    )
+    drawing = ImageDraw.Draw(canvas)
+    leg_height_units = MASCOT_LEG_HEIGHT_UNITS - pose.crouch_units
+    body_bottom_unit = MASCOT_CANVAS_HEIGHT_UNITS - leg_height_units
+    body_height_units = MASCOT_BODY_HEIGHT_UNITS - pose.crouch_units
+    body_top_unit = body_bottom_unit - body_height_units
+    body_left_unit = MASCOT_BODY_LEFT_UNIT - pose.crouch_units
+    body_width_units = MASCOT_BODY_WIDTH_UNITS + 2 * pose.crouch_units
+    fill_mascot_cells(drawing, pixel_unit, body_left_unit, body_top_unit, body_width_units, body_height_units, body_color)
+    if pose.arms_raised:
+        arm_offset_units, arm_height_units = MASCOT_RAISED_ARM_TOP_OFFSET_UNITS, MASCOT_RAISED_ARM_HEIGHT_UNITS
+    else:
+        arm_offset_units, arm_height_units = MASCOT_RESTING_ARM_TOP_OFFSET_UNITS, MASCOT_ARM_HEIGHT_UNITS
+    arm_top_unit = body_top_unit + arm_offset_units
+    for arm_left_unit in (body_left_unit - MASCOT_ARM_WIDTH_UNITS, body_left_unit + body_width_units):
+        fill_mascot_cells(
+            drawing, pixel_unit, arm_left_unit, arm_top_unit, MASCOT_ARM_WIDTH_UNITS, arm_height_units, body_color
+        )
+    for leg_column_unit in MASCOT_LEG_COLUMN_UNITS:
+        fill_mascot_cells(drawing, pixel_unit, leg_column_unit, body_bottom_unit, 1, leg_height_units, body_color)
+    eye_height_units = MASCOT_CLOSED_EYE_HEIGHT_UNITS if pose.eyes_closed else MASCOT_OPEN_EYE_HEIGHT_UNITS
+    eye_top_unit = body_top_unit + MASCOT_EYE_TOP_OFFSET_UNITS + MASCOT_OPEN_EYE_HEIGHT_UNITS - eye_height_units
+    for eye_column_unit in MASCOT_EYE_COLUMN_UNITS:
+        fill_mascot_cells(drawing, pixel_unit, eye_column_unit, eye_top_unit, 1, eye_height_units, MASCOT_EYE_COLOR)
+    return canvas
+
+
+def draw_mascot_shadow(drawing, pixel_unit, pose, ground_top, background_color, horizontal_center):
+    full_shadow_width = MASCOT_BODY_WIDTH_UNITS * pixel_unit
+    shrink_ratio = max(0.4, 1 - MASCOT_SHADOW_SHRINK_PER_LIFT_UNIT * pose.lift_units)
+    shadow_width = full_shadow_width * shrink_ratio
+    shadow_left = horizontal_center - shadow_width / 2
+    shadow_color = blend_colors(MASCOT_SHADOW_COLOR, background_color, MASCOT_SHADOW_WEIGHT)
+    drawing.ellipse(
+        [shadow_left, ground_top - MASCOT_SHADOW_HEIGHT // 2, shadow_left + shadow_width, ground_top + MASCOT_SHADOW_HEIGHT // 2],
+        fill=shadow_color,
+    )
+
+
+def paste_mascot_on_ground(
+    image,
+    pixel_unit,
+    pose,
+    ground_top,
+    body_color=MASCOT_BODY_COLOR,
+    background_color=None,
+    horizontal_center=KEY_PIXEL_SIZE // 2,
+):
+    if background_color is not None:
+        draw_mascot_shadow(ImageDraw.Draw(image), pixel_unit, pose, ground_top, background_color, horizontal_center)
+    mascot_image = render_claude_mascot(pixel_unit, pose, body_color)
+    mascot_left = horizontal_center - mascot_image.width // 2
+    mascot_top = ground_top - mascot_image.height - pose.lift_units * pixel_unit
+    image.paste(mascot_image, (mascot_left, mascot_top), mascot_image)
+
+
+def draw_sleeping_marks(drawing, color):
+    for font_size, horizontal_position, vertical_position in SLEEPING_MARK_PLACEMENTS:
+        drawing.text((horizontal_position, vertical_position), "z", font=load_font(BOLD_FONT_PATH, font_size), fill=color)
+
+
+@lru_cache(maxsize=16)
+def render_mascot_key(pose, caption_text, background_color, caption_color, body_color=MASCOT_BODY_COLOR):
+    image = Image.new("RGB", (KEY_PIXEL_SIZE, KEY_PIXEL_SIZE), background_color)
+    drawing = ImageDraw.Draw(image)
+    ground_top = MASCOT_KEY_GROUND_TOP if caption_text else MASCOT_KEY_UNCAPTIONED_GROUND_TOP
+    paste_mascot_on_ground(image, MASCOT_KEY_PIXEL_UNIT, pose, ground_top, body_color, background_color)
+    if pose.eyes_closed:
+        draw_sleeping_marks(drawing, caption_color)
+    if caption_text:
+        draw_centered_fitting_line(
+            drawing,
+            caption_text,
+            NARROW_BOLD_FONT_PATH,
+            MASCOT_KEY_CAPTION_MAXIMUM_FONT_SIZE,
+            MASCOT_KEY_CAPTION_MINIMUM_FONT_SIZE,
+            MASCOT_KEY_CAPTION_TOP,
+            caption_color,
+        )
+    return image
+
+
+@lru_cache(maxsize=8)
+def render_sessions_title_key(machine_label, background_color, machine_label_color):
+    image = Image.new("RGB", (KEY_PIXEL_SIZE, KEY_PIXEL_SIZE), background_color)
+    drawing = ImageDraw.Draw(image)
+    paste_mascot_on_ground(
+        image,
+        SESSIONS_TITLE_MASCOT_PIXEL_UNIT,
+        MASCOT_STANDING_POSE,
+        SESSIONS_TITLE_MASCOT_GROUND_TOP,
+        background_color=background_color,
+    )
+    title_font = load_font(NARROW_BOLD_FONT_PATH, SESSIONS_TITLE_FONT_SIZE)
+    draw_centered_single_line(drawing, "SESIONES", title_font, SESSIONS_TITLE_LABEL_TOP, BODY_TEXT_COLOR)
+    machine_font = load_font(NARROW_BOLD_FONT_PATH, LABEL_CAPTION_FONT_SIZE)
+    draw_centered_single_line(drawing, machine_label, machine_font, SESSIONS_TITLE_MACHINE_TOP, machine_label_color)
+    return image
+
+
+@lru_cache(maxsize=16)
+def render_switch_legend_key(switch_is_on, legend_text, background_color):
+    image = Image.new("RGB", (KEY_PIXEL_SIZE, KEY_PIXEL_SIZE), background_color)
+    drawing = ImageDraw.Draw(image)
+    track_color = SWITCH_ON_TRACK_COLOR if switch_is_on else off_track_color_contrasting_with(background_color)
+    switch_image = render_toggle_switch(LEGEND_SWITCH_WIDTH, LEGEND_SWITCH_HEIGHT, switch_is_on, track_color)
+    paste_centered_horizontally(image, switch_image, LEGEND_SWITCH_TOP)
+    legend_font, legend_lines = fit_text_into_line_layouts(
+        legend_text,
+        NARROW_BOLD_FONT_PATH,
+        KEY_PIXEL_SIZE - 2 * LABEL_HORIZONTAL_PADDING,
+        LEGEND_TEXT_FONT_SIZE_AND_LINE_COUNT_ATTEMPTS,
+    )
+    legend_color = BODY_TEXT_COLOR if switch_is_on else MUTED_BODY_COLOR
+    line_height = legend_font.size + 2
+    for line_position, line_text in enumerate(legend_lines):
+        draw_centered_single_line(
+            drawing, line_text, legend_font, LEGEND_TEXT_AREA_TOP + line_position * line_height, legend_color
+        )
+    return image
+
+
+@lru_cache(maxsize=16)
+def render_switch_key(caption_text, switch_is_on, footer_text, background_color):
+    image = Image.new("RGB", (KEY_PIXEL_SIZE, KEY_PIXEL_SIZE), background_color)
+    drawing = ImageDraw.Draw(image)
+    caption_font = load_font(NARROW_BOLD_FONT_PATH, LABEL_CAPTION_FONT_SIZE)
+    draw_centered_single_line(drawing, caption_text, caption_font, MACHINE_SUMMARY_CAPTION_TOP, ACCENT_CAPTION_COLOR)
+    track_color = SWITCH_ON_TRACK_COLOR if switch_is_on else off_track_color_contrasting_with(background_color)
+    switch_image = render_toggle_switch(MACHINE_SWITCH_WIDTH, MACHINE_SWITCH_HEIGHT, switch_is_on, track_color)
+    paste_centered_horizontally(image, switch_image, MACHINE_SWITCH_TOP)
+    footer_top = KEY_PIXEL_SIZE - LABEL_EDGE_MARGIN - MACHINE_KEY_FOOTER_MAXIMUM_FONT_SIZE - 1
+    draw_centered_fitting_line(
+        drawing,
+        footer_text,
+        NARROW_BOLD_FONT_PATH,
+        MACHINE_KEY_FOOTER_MAXIMUM_FONT_SIZE,
+        MACHINE_KEY_FOOTER_MINIMUM_FONT_SIZE,
+        footer_top,
+        BODY_TEXT_COLOR if switch_is_on else MUTED_BODY_COLOR,
+    )
+    return image
+
+
+def draw_count_badge(drawing, count, badge_color, text_color, ring_color):
+    badge_center_x = KEY_PIXEL_SIZE - MAIN_KEY_BADGE_RADIUS - MAIN_KEY_BADGE_EDGE_MARGIN
+    badge_center_y = MAIN_KEY_BADGE_RADIUS + MAIN_KEY_BADGE_EDGE_MARGIN
     drawing.ellipse(
         [
             badge_center_x - MAIN_KEY_BADGE_RADIUS,
@@ -781,44 +1410,79 @@ def draw_count_badge(drawing, count, badge_color, text_color):
             badge_center_y + MAIN_KEY_BADGE_RADIUS,
         ],
         fill=badge_color,
-        outline=(16, 16, 16),
-        width=2,
+        outline=ring_color,
+        width=MAIN_KEY_BADGE_OUTLINE_WIDTH,
     )
-    badge_text = str(count) if count < 10 else "9+"
-    badge_font = load_font(BOLD_FONT_PATH, 14 if count < 10 else 11)
+    if count <= MAIN_KEY_BADGE_MAXIMUM_EXACT_COUNT:
+        badge_text, badge_font_size = str(count), MAIN_KEY_BADGE_SINGLE_DIGIT_FONT_SIZE
+    else:
+        badge_text, badge_font_size = f"{MAIN_KEY_BADGE_MAXIMUM_EXACT_COUNT}+", MAIN_KEY_BADGE_OVERFLOW_FONT_SIZE
+    badge_font = load_font(BOLD_FONT_PATH, badge_font_size)
     drawing.text((badge_center_x, badge_center_y), badge_text, font=badge_font, fill=text_color, anchor="mm")
 
 
-@lru_cache(maxsize=64)
-def render_main_page_claude_key(pending_count, waiting_count, highlight_on):
-    if pending_count and highlight_on:
-        background_color = MAIN_KEY_PENDING_BACKGROUND_COLOR
-    elif waiting_count and not pending_count:
-        background_color = MAIN_KEY_WAITING_BACKGROUND_COLOR
-    else:
-        background_color = IDLE_MAIN_KEY_COLOR
+MASCOT_JUMP_LOOP_SECONDS = len(MASCOT_JUMP_ANIMATION_POSES) * MAIN_KEY_ANIMATION_FRAME_SECONDS
+
+
+def jump_pose_after(seconds_into_animation):
+    frame_position = int(seconds_into_animation / MAIN_KEY_ANIMATION_FRAME_SECONDS) % len(MASCOT_JUMP_ANIMATION_POSES)
+    return MASCOT_JUMP_ANIMATION_POSES[frame_position]
+
+
+def main_key_mascot_pose_at(newest_request_created_at, now):
+    if newest_request_created_at is None:
+        return MASCOT_STANDING_POSE, False
+    seconds_since_request = max(0.0, now - newest_request_created_at)
+    if seconds_since_request < MAIN_KEY_ANIMATION_DURATION_SECONDS:
+        return jump_pose_after(seconds_since_request), True
+    seconds_into_reminder_cycle = (
+        seconds_since_request - MAIN_KEY_ANIMATION_DURATION_SECONDS
+    ) % MAIN_KEY_REMINDER_JUMP_INTERVAL_SECONDS
+    if seconds_into_reminder_cycle < MASCOT_JUMP_LOOP_SECONDS:
+        return jump_pose_after(seconds_into_reminder_cycle), True
+    return MASCOT_STANDING_POSE, False
+
+
+@lru_cache(maxsize=128)
+def render_main_page_claude_key(pending_count, waiting_count, mascot_pose=MASCOT_STANDING_POSE):
+    if not pending_count and not waiting_count:
+        image = Image.new("RGB", (KEY_PIXEL_SIZE, KEY_PIXEL_SIZE), IDLE_MAIN_KEY_COLOR)
+        idle_mascot = render_claude_mascot(MAIN_KEY_IDLE_MASCOT_PIXEL_UNIT, MASCOT_STANDING_POSE, MASCOT_BODY_COLOR)
+        headroom_height = MASCOT_HEADROOM_UNITS * MAIN_KEY_IDLE_MASCOT_PIXEL_UNIT
+        visible_mascot_height = idle_mascot.height - headroom_height
+        image.paste(
+            idle_mascot,
+            (
+                (KEY_PIXEL_SIZE - idle_mascot.width) // 2,
+                (KEY_PIXEL_SIZE - visible_mascot_height) // 2 - headroom_height,
+            ),
+            idle_mascot,
+        )
+        return image
+    background_color = MAIN_KEY_PENDING_BACKGROUND_COLOR if pending_count else MAIN_KEY_WAITING_BACKGROUND_COLOR
     image = Image.new("RGB", (KEY_PIXEL_SIZE, KEY_PIXEL_SIZE), background_color)
     drawing = ImageDraw.Draw(image)
-    if pending_count and highlight_on:
+    if pending_count:
         drawing.rectangle(
             [0, 0, KEY_PIXEL_SIZE - 1, KEY_PIXEL_SIZE - 1], outline=PENDING_ALERT_COLOR, width=MAIN_KEY_BORDER_WIDTH
         )
-    if not pending_count and not waiting_count:
-        idle_icon = render_claude_spark_icon(MAIN_KEY_IDLE_ICON_DIAMETER, CLAUDE_ACCENT_COLOR)
-        idle_icon_offset = (KEY_PIXEL_SIZE - MAIN_KEY_IDLE_ICON_DIAMETER) // 2
-        image.paste(idle_icon, (idle_icon_offset, idle_icon_offset), idle_icon)
-        return image
-    spark_icon = render_claude_spark_icon(MAIN_KEY_ICON_DIAMETER, CLAUDE_ACCENT_COLOR)
-    image.paste(spark_icon, ((KEY_PIXEL_SIZE - MAIN_KEY_ICON_DIAMETER) // 2, MAIN_KEY_ICON_TOP), spark_icon)
+    pose = mascot_pose if pending_count else MASCOT_STANDING_POSE
+    paste_mascot_on_ground(
+        image,
+        MAIN_KEY_ALERT_MASCOT_PIXEL_UNIT,
+        pose,
+        MAIN_KEY_ALERT_MASCOT_GROUND_TOP,
+        background_color=background_color,
+        horizontal_center=MAIN_KEY_ALERT_MASCOT_HORIZONTAL_CENTER,
+    )
     if pending_count:
         label_text, label_color = "RESPONDER", BODY_TEXT_COLOR
-        draw_count_badge(drawing, pending_count, PENDING_ALERT_COLOR, BODY_TEXT_COLOR)
+        draw_count_badge(drawing, pending_count, PENDING_ALERT_COLOR, CLAUDE_IVORY_COLOR, background_color)
     else:
-        label_text, label_color = "ESPERANDO", WAITING_ALERT_COLOR
-        draw_count_badge(drawing, waiting_count, WAITING_ALERT_COLOR, DARK_TEXT_COLOR)
+        label_text, label_color = "LISTO", WAITING_ALERT_COLOR
+        draw_count_badge(drawing, waiting_count, WAITING_ALERT_COLOR, DARK_TEXT_COLOR, background_color)
     label_font = load_font(NARROW_BOLD_FONT_PATH, MAIN_KEY_LABEL_FONT_SIZE)
-    label_vertical_position = KEY_PIXEL_SIZE - MAIN_KEY_LABEL_FONT_SIZE - 9
-    draw_centered_single_line(drawing, label_text, label_font, label_vertical_position, label_color)
+    draw_centered_single_line(drawing, label_text, label_font, MAIN_KEY_LABEL_TOP, label_color)
     return image
 
 
@@ -953,6 +1617,34 @@ def describe_session_count(session_count):
     return "1 sesión" if session_count == 1 else f"{session_count} sesiones"
 
 
+def describe_switched_on_sessions(switched_on_session_count, total_session_count):
+    if switched_on_session_count == 0:
+        return "apagada" if total_session_count == 1 else "todas apagadas"
+    if switched_on_session_count == 1:
+        return "1 encendida"
+    return f"{switched_on_session_count} encendidas"
+
+
+def activity_state_reported_by(request_body):
+    hook_event_name = request_body.get("activity_event")
+    if hook_event_name == "SessionStart":
+        if request_body.get("session_start_source") in SESSION_START_SOURCES_KEEPING_ACTIVITY:
+            return None
+        return SESSION_ACTIVITY_NEW
+    return ACTIVITY_STATE_BY_HOOK_EVENT.get(hook_event_name)
+
+
+def readable_session_title(session_label, project):
+    title = session_label or project
+    if " " not in title:
+        title = title.replace("-", " ").replace("_", " ")
+    project_prefix = project.lower() + " "
+    if title.lower().startswith(project_prefix) and len(title) > len(project_prefix):
+        remaining_title = title[len(project_prefix) :]
+        title = remaining_title[0].upper() + remaining_title[1:]
+    return title
+
+
 def normalize_project_label(raw_project):
     project = raw_project if isinstance(raw_project, str) and raw_project.strip() else "?"
     return truncate_text(project.strip(), MAXIMUM_PROJECT_CHARACTERS)
@@ -1047,6 +1739,9 @@ class KnownSession:
     deck_enabled: bool
     registered_at: float
     last_seen_at: float
+    activity_state: str
+    activity_changed_at: float
+    teammate_color: tuple
 
 
 @dataclass
@@ -1070,6 +1765,22 @@ class DeckFrame:
     main_page_key_image: Image.Image
     view_token: int
     state_version: int
+    shows_home_screen: bool = False
+
+
+@dataclass(frozen=True)
+class MainKeyAppearance:
+    pending_count: int
+    waiting_count: int
+    mascot_pose: MascotPose
+
+
+@lru_cache(maxsize=128)
+def encode_main_key_appearance(appearance):
+    data_url = encode_key_image_as_data_url(
+        render_main_page_claude_key(appearance.pending_count, appearance.waiting_count, appearance.mascot_pose)
+    )
+    return data_url, hashlib.sha256(data_url.encode("ascii")).hexdigest()
 
 
 class InvalidRequestBody(Exception):
@@ -1276,11 +1987,12 @@ class ClaudeDeckCoordinator:
             return stored_override.enabled
         return request_body.get("deck_enabled_by_environment") is True
 
-    def register_session_activity(self, request_body, machine, session_id):
+    def register_session_activity(self, request_body, machine, session_id, reported_activity_state):
         session_key = (machine, session_id)
         now = time.monotonic()
         project = normalize_project_label(request_body.get("project"))
         session_label = normalize_optional_label(request_body.get("session_label"), MAXIMUM_SESSION_LABEL_CHARACTERS)
+        teammate_color = TEAMMATE_COLORS.get(request_body.get("teammate_color"))
         known_session = self.known_sessions_by_key.get(session_key)
         if known_session is None:
             known_session = KnownSession(
@@ -1291,6 +2003,9 @@ class ClaudeDeckCoordinator:
                 deck_enabled=self.initial_deck_visibility(session_key, request_body),
                 registered_at=now,
                 last_seen_at=now,
+                activity_state=reported_activity_state or SESSION_ACTIVITY_NEW,
+                activity_changed_at=now,
+                teammate_color=teammate_color,
             )
             self.known_sessions_by_key[session_key] = known_session
             visibility_description = "on deck" if known_session.deck_enabled else "hidden"
@@ -1302,6 +2017,13 @@ class ClaudeDeckCoordinator:
         if label_changed:
             known_session.project = project
             known_session.session_label = session_label or known_session.session_label
+            self.mark_state_changed()
+        if teammate_color is not None and known_session.teammate_color != teammate_color:
+            known_session.teammate_color = teammate_color
+            self.mark_state_changed()
+        if reported_activity_state and known_session.activity_state != reported_activity_state:
+            known_session.activity_state = reported_activity_state
+            known_session.activity_changed_at = now
             self.mark_state_changed()
         return known_session
 
@@ -1359,7 +2081,9 @@ class ClaudeDeckCoordinator:
                 return {"status": "released", "reason": "machine_paused"}
             if not self.companion_is_reachable:
                 return {"status": "released", "reason": "companion_unreachable"}
-            known_session = self.register_session_activity(request_body, machine, session_id)
+            known_session = self.register_session_activity(
+                request_body, machine, session_id, SESSION_ACTIVITY_WORKING
+            )
             now = time.monotonic()
             request = PendingRequest(
                 request_id=uuid.uuid4().hex,
@@ -1440,7 +2164,7 @@ class ClaudeDeckCoordinator:
             raise InvalidRequestBody("machine and session_id are required")
         last_message = request_body.get("last_message")
         with self.condition:
-            self.register_session_activity(request_body, machine, session_id)
+            self.register_session_activity(request_body, machine, session_id, SESSION_ACTIVITY_FINISHED)
             self.withdraw_requests_resolved_in_terminal(machine, session_id)
             self.waiting_sessions_by_key[(machine, session_id)] = WaitingSession(
                 machine=machine,
@@ -1460,7 +2184,9 @@ class ClaudeDeckCoordinator:
         if machine is None or not isinstance(session_id, str):
             raise InvalidRequestBody("machine and session_id are required")
         with self.condition:
-            self.register_session_activity(request_body, machine, session_id)
+            self.register_session_activity(
+                request_body, machine, session_id, activity_state_reported_by(request_body)
+            )
             self.withdraw_requests_resolved_in_terminal(machine, session_id)
             self.remove_waiting_session((machine, session_id))
 
@@ -1776,18 +2502,18 @@ class ClaudeDeckCoordinator:
             newest_request_created_at = max(
                 (self.requests_by_id[request_id].created_at for request_id in self.queued_request_ids), default=None
             )
-            should_blink = (
-                newest_request_created_at is not None
-                and time.monotonic() - newest_request_created_at < MAIN_KEY_BLINK_DURATION_SECONDS
-            )
-            return pending_count, waiting_count, should_blink
+            return pending_count, waiting_count, newest_request_created_at
 
-    def build_main_page_key_image(self, blink_phase_on=True):
-        pending_count, waiting_count, should_blink = self.main_page_key_alert_state()
-        highlight_on = pending_count > 0 and (blink_phase_on or not should_blink)
-        return render_main_page_claude_key(pending_count, waiting_count, highlight_on)
+    def current_main_key_appearance(self):
+        pending_count, waiting_count, newest_request_created_at = self.main_page_key_alert_state()
+        mascot_pose, is_animating = main_key_mascot_pose_at(newest_request_created_at, time.monotonic())
+        return MainKeyAppearance(pending_count, waiting_count, mascot_pose), is_animating
 
-    def build_deck_frame(self, main_key_blink_phase_on=True):
+    def build_main_page_key_image(self):
+        appearance, unused_is_animating = self.current_main_key_appearance()
+        return render_main_page_claude_key(appearance.pending_count, appearance.waiting_count, appearance.mascot_pose)
+
+    def build_deck_frame(self):
         with self.condition:
             frame_builder = self.select_frame_builder()
             key_images, key_actions = frame_builder()
@@ -1797,9 +2523,10 @@ class ClaudeDeckCoordinator:
             return DeckFrame(
                 key_images=key_images,
                 key_actions=key_actions,
-                main_page_key_image=self.build_main_page_key_image(main_key_blink_phase_on),
+                main_page_key_image=self.build_main_page_key_image(),
                 view_token=self.view_token,
                 state_version=self.state_version,
+                shows_home_screen=frame_builder == self.build_home_frame,
             )
 
     def reading_source_is_available(self):
@@ -1843,15 +2570,24 @@ class ClaudeDeckCoordinator:
         for request_id in self.queued_request_ids:
             request = self.requests_by_id[request_id]
             display = machine_display_for(request.machine)
+            presentation = SESSION_STATUS_PRESENTATIONS[request.kind]
             list_entries.append(
                 (
-                    LabelKeyDesign(
-                        primary_text=join_non_empty_lines(request.project, request.session_label),
-                        background_color=PENDING_LIST_BACKGROUND_COLOR,
-                        caption_text=display.label,
-                        footer_text=REQUEST_KIND_LABELS[request.kind],
-                        top_strip_color=display.color,
-                        maximum_font_size=14,
+                    SessionKeyDesign(
+                        title_text=readable_session_title(request.session_label, request.project),
+                        project_text=display.label,
+                        status_text=presentation.text,
+                        status_color=presentation.color,
+                        status_text_color=presentation.color,
+                        background_color=blend_colors(PENDING_ALERT_COLOR, PANEL_BACKGROUND_COLOR, PENDING_CARD_TINT_WEIGHT),
+                        title_color=CLAUDE_IVORY_COLOR,
+                        project_color=VISIBLE_SESSION_PROJECT_COLOR,
+                        switch_is_on=True,
+                        switch_track_color=SWITCH_ON_TRACK_COLOR,
+                        teammate_color=display.color,
+                        border_color=PENDING_ALERT_COLOR,
+                        shows_switch=False,
+                        project_text_is_bold=True,
                     ),
                     ("focus_request_by_id", request_id),
                 )
@@ -1859,19 +2595,25 @@ class ClaudeDeckCoordinator:
         waiting_sessions = sorted(
             self.visible_waiting_sessions(), key=lambda session: session.waiting_since, reverse=True
         )
+        finished_presentation = SESSION_STATUS_PRESENTATIONS[SESSION_ACTIVITY_FINISHED]
         for session in waiting_sessions:
             display = machine_display_for(session.machine)
             list_entries.append(
                 (
-                    LabelKeyDesign(
-                        primary_text=join_non_empty_lines(session.project, session.session_label),
+                    SessionKeyDesign(
+                        title_text=readable_session_title(session.session_label, session.project),
+                        project_text=display.label,
+                        status_text=f"{finished_presentation.text} · {describe_elapsed_time(now - session.waiting_since)}",
+                        status_color=finished_presentation.color,
+                        status_text_color=finished_presentation.color,
                         background_color=WAITING_SESSION_BACKGROUND_COLOR,
-                        caption_text=display.label,
-                        caption_color=MUTED_BODY_COLOR,
-                        footer_text=describe_elapsed_time(now - session.waiting_since),
-                        footer_color=MUTED_BODY_COLOR,
-                        top_strip_color=display.color,
-                        maximum_font_size=14,
+                        title_color=BODY_TEXT_COLOR,
+                        project_color=MUTED_BODY_COLOR,
+                        switch_is_on=True,
+                        switch_track_color=SWITCH_ON_TRACK_COLOR,
+                        teammate_color=display.color,
+                        shows_switch=False,
+                        project_text_is_bold=True,
                     ),
                     ("open_waiting_reading", (session.machine, session.session_id)),
                 )
@@ -1893,35 +2635,49 @@ class ClaudeDeckCoordinator:
             )
             key_actions[more_location] = (next_page_action_name, None)
         for location, (design, action) in zip(HOME_LIST_LOCATIONS, visible_entries):
-            key_images[location] = render_label_key(design)
+            key_images[location] = render_session_key(design) if isinstance(design, SessionKeyDesign) else render_label_key(design)
             key_actions[location] = action
+
+    def session_dot_kind(self, known_session):
+        session_key = (known_session.machine, known_session.session_id)
+        if self.pending_requests_of_session(session_key):
+            return "alert"
+        return "on" if known_session.deck_enabled else "off"
 
     def machine_sessions_key_image(self, machine):
         display = machine_display_for(machine)
         machine_sessions = self.known_sessions_of_machine(machine)
-        visible_session_count = sum(1 for session in machine_sessions if session.deck_enabled)
+        switched_on_session_count = sum(1 for session in machine_sessions if session.deck_enabled)
         dimmed_machine_color = blend_colors(display.color, PANEL_BACKGROUND_COLOR, MACHINE_WITHOUT_VISIBLE_SESSIONS_TINT_WEIGHT)
+        session_dot_kinds = tuple(self.session_dot_kind(session) for session in machine_sessions)
         if not self.routing_enabled_by_machine.get(machine, True):
-            primary_text = "EN PAUSA"
-            footer_text = describe_session_count(len(machine_sessions))
-            background_color = PAUSED_MACHINE_COLOR
-        elif not machine_sessions:
-            primary_text = "—"
-            footer_text = "sin sesiones"
-            background_color = dimmed_machine_color
-        else:
-            primary_text = f"{visible_session_count} de {len(machine_sessions)}"
-            footer_text = "en el deck"
-            background_color = display.color if visible_session_count else dimmed_machine_color
-        return render_label_key(
-            LabelKeyDesign(
-                primary_text=primary_text,
-                background_color=background_color,
-                caption_text=display.label,
-                footer_text=footer_text,
-                maximum_font_size=17,
+            design = MachineSummaryDesign(
+                machine_label=display.label,
+                headline_text="en pausa",
+                footer_text=describe_session_count(len(machine_sessions)),
+                background_color=PAUSED_MACHINE_COLOR,
+                session_dot_kinds=session_dot_kinds,
+                headline_color=MUTED_BODY_COLOR,
+                footer_color=MUTED_BODY_COLOR,
             )
-        )
+        elif not machine_sessions:
+            design = MachineSummaryDesign(
+                machine_label=display.label,
+                headline_text="sin sesiones",
+                footer_text="",
+                background_color=dimmed_machine_color,
+                session_dot_kinds=(),
+                headline_color=MUTED_BODY_COLOR,
+            )
+        else:
+            design = MachineSummaryDesign(
+                machine_label=display.label,
+                headline_text=describe_session_count(len(machine_sessions)),
+                footer_text=describe_switched_on_sessions(switched_on_session_count, len(machine_sessions)),
+                background_color=display.color if switched_on_session_count else dimmed_machine_color,
+                session_dot_kinds=session_dot_kinds,
+            )
+        return render_machine_summary_key(design)
 
     def build_home_frame(self):
         key_images = {}
@@ -1930,68 +2686,74 @@ class ClaudeDeckCoordinator:
         for column, machine in enumerate(KNOWN_MACHINE_DISPLAYS):
             key_images[(0, column)] = self.machine_sessions_key_image(machine)
             key_actions[(0, column)] = ("open_machine_sessions", machine)
-        pending_count, waiting_count, unused_should_blink = self.main_page_key_alert_state()
-        key_images[(0, 2)] = render_main_page_claude_key(pending_count, waiting_count, True)
-        if pending_count:
-            key_actions[(0, 2)] = ("focus_first_request", None)
-        key_images[(0, 3)] = render_label_key(
-            LabelKeyDesign(
-                primary_text="SÍ" if self.auto_open_enabled else "NO",
-                background_color=ALLOW_COLOR if self.auto_open_enabled else PAUSED_MACHINE_COLOR,
-                caption_text="AUTO-ABRIR",
-                footer_text="esta página",
-                maximum_font_size=18,
-            )
+        key_images[HOME_CLAUDE_KEY_LOCATION] = self.build_main_page_key_image()
+        if self.queued_request_ids:
+            key_actions[HOME_CLAUDE_KEY_LOCATION] = ("focus_first_request", None)
+        key_images[(0, 3)] = render_switch_key(
+            "AUTO-ABRIR",
+            self.auto_open_enabled,
+            AUTO_OPEN_ON_TEXT if self.auto_open_enabled else AUTO_OPEN_OFF_TEXT,
+            NAVIGATION_COLOR,
         )
         key_actions[(0, 3)] = ("toggle_auto_open", None)
         key_images[(0, 4)] = navigation_key_image("exit", "SALIR")
         key_actions[(0, 4)] = ("leave_deck", None)
         list_entries = self.build_home_list_entries(now)
         if not list_entries:
-            key_images.update(
-                render_text_panel(
-                    (TextParagraph("Ninguna sesión te está esperando", MUTED_TEXT_COLOR),),
-                    EMPTY_HOME_MESSAGE_KEY_ROWS,
-                    EMPTY_KEY_COLOR,
-                )
+            key_images[EMPTY_HOME_MASCOT_KEY_LOCATION] = render_mascot_key(
+                MASCOT_SLEEPING_POSE, EMPTY_HOME_CAPTION, EMPTY_KEY_COLOR, MUTED_TEXT_COLOR, MASCOT_SLEEPING_BODY_COLOR
             )
             return key_images, key_actions
         self.place_paged_list(key_images, key_actions, list_entries, self.home_list_page_index, "home_next_list_page")
         return key_images, key_actions
 
-    def session_activity_footer(self, session_key):
+    def session_status_text_and_presentation(self, known_session, now):
+        session_key = (known_session.machine, known_session.session_id)
         pending_requests = sorted(self.pending_requests_of_session(session_key), key=lambda request: request.created_at)
         if pending_requests:
-            return REQUEST_KIND_LABELS[pending_requests[0].kind], WAITING_ALERT_COLOR
-        if session_key in self.waiting_sessions_by_key:
-            return "esperando", MUTED_BODY_COLOR
-        return "activa", MUTED_TEXT_COLOR
+            presentation = SESSION_STATUS_PRESENTATIONS[pending_requests[0].kind]
+        else:
+            presentation = SESSION_STATUS_PRESENTATIONS.get(
+                known_session.activity_state, SESSION_STATUS_PRESENTATIONS[SESSION_ACTIVITY_NEW]
+            )
+        if not presentation.shows_elapsed_time:
+            return presentation.text, presentation
+        elapsed_description = describe_elapsed_time(now - known_session.activity_changed_at)
+        return f"{presentation.text} · {elapsed_description}", presentation
 
-    def session_toggle_list_entry(self, known_session):
+    def session_toggle_list_entry(self, known_session, now):
         session_key = (known_session.machine, known_session.session_id)
         display = machine_display_for(known_session.machine)
-        footer_text, footer_color = self.session_activity_footer(session_key)
-        primary_text = join_non_empty_lines(known_session.project, known_session.session_label)
+        status_text, presentation = self.session_status_text_and_presentation(known_session, now)
+        title_text = readable_session_title(known_session.session_label, known_session.project)
         if known_session.deck_enabled:
-            design = LabelKeyDesign(
-                primary_text=primary_text,
+            design = SessionKeyDesign(
+                title_text=title_text,
+                project_text=known_session.project,
+                status_text=status_text,
+                status_color=presentation.color,
+                status_text_color=presentation.color if presentation.demands_attention else BODY_TEXT_COLOR,
                 background_color=blend_colors(display.color, PANEL_BACKGROUND_COLOR, VISIBLE_SESSION_TINT_WEIGHT),
-                caption_text=VISIBLE_SESSION_CAPTION,
-                footer_text=footer_text,
-                footer_color=footer_color if footer_color == WAITING_ALERT_COLOR else BODY_TEXT_COLOR,
-                top_strip_color=display.color,
-                maximum_font_size=14,
+                title_color=BODY_TEXT_COLOR,
+                project_color=VISIBLE_SESSION_PROJECT_COLOR,
+                switch_is_on=True,
+                switch_track_color=SWITCH_ON_TRACK_COLOR,
+                teammate_color=known_session.teammate_color,
+                border_color=PENDING_ALERT_COLOR if presentation.demands_attention else None,
             )
         else:
-            design = LabelKeyDesign(
-                primary_text=primary_text,
+            design = SessionKeyDesign(
+                title_text=title_text,
+                project_text=known_session.project,
+                status_text=status_text,
+                status_color=presentation.color,
+                status_text_color=presentation.color if presentation.demands_attention else HIDDEN_SESSION_STATUS_TEXT_COLOR,
                 background_color=HIDDEN_SESSION_BACKGROUND_COLOR,
-                primary_color=MUTED_TEXT_COLOR,
-                caption_text=HIDDEN_SESSION_CAPTION,
-                caption_color=MUTED_TEXT_COLOR,
-                footer_text=footer_text,
-                footer_color=footer_color,
-                maximum_font_size=14,
+                title_color=HIDDEN_SESSION_TITLE_COLOR,
+                project_color=HIDDEN_SESSION_PROJECT_COLOR,
+                switch_is_on=False,
+                switch_track_color=SWITCH_OFF_TRACK_COLOR,
+                teammate_color=known_session.teammate_color,
             )
         return design, ("toggle_session_on_deck", session_key)
 
@@ -1999,28 +2761,39 @@ class ClaudeDeckCoordinator:
         machine = self.sessions_screen_machine
         display = machine_display_for(machine)
         routing_enabled = self.routing_enabled_by_machine.get(machine, True)
-        banner_paragraphs = [
-            TextParagraph("Sesiones", BODY_TEXT_COLOR, True),
-            TextParagraph("Toca una para mostrar u ocultar", MUTED_BODY_COLOR, starts_new_key=True),
-        ]
-        if not routing_enabled:
-            banner_paragraphs.append(
-                TextParagraph("En pausa, todo queda en la terminal", WAITING_ALERT_COLOR, starts_new_key=True)
+        banner_background_color = banner_background_for(display)
+        if routing_enabled:
+            key_images = {
+                SESSIONS_LEGEND_ON_KEY_LOCATION: render_switch_legend_key(
+                    True, SESSIONS_LEGEND_SWITCH_ON_TEXT, banner_background_color
+                ),
+                SESSIONS_LEGEND_OFF_KEY_LOCATION: render_switch_legend_key(
+                    False, SESSIONS_LEGEND_SWITCH_OFF_TEXT, banner_background_color
+                ),
+            }
+        else:
+            key_images = render_text_panel(
+                (TextParagraph(SESSIONS_BANNER_PAUSED_HINT, WAITING_ALERT_COLOR),),
+                SESSIONS_PAUSED_HINT_KEY_ROWS,
+                banner_background_color,
             )
-        key_images = render_text_panel(tuple(banner_paragraphs), SESSIONS_BANNER_KEY_ROWS, banner_background_for(display))
+        key_images[SESSIONS_TITLE_KEY_LOCATION] = render_sessions_title_key(
+            display.label, banner_background_color, blend_colors(display.color, CLAUDE_IVORY_COLOR, 0.45)
+        )
         key_actions = {}
         key_images[SESSIONS_BACK_KEY_LOCATION] = navigation_key_image("back", "ATRÁS")
         key_actions[SESSIONS_BACK_KEY_LOCATION] = ("show_home", None)
-        key_images[SESSIONS_MACHINE_PAUSE_KEY_LOCATION] = render_label_key(
-            LabelKeyDesign(
-                primary_text="ACTIVO" if routing_enabled else "EN PAUSA",
-                background_color=display.color if routing_enabled else PAUSED_MACHINE_COLOR,
-                caption_text=display.label,
-                maximum_font_size=15,
-            )
+        key_images[SESSIONS_MACHINE_PAUSE_KEY_LOCATION] = render_switch_key(
+            display.label,
+            routing_enabled,
+            MACHINE_ROUTING_ON_TEXT if routing_enabled else MACHINE_ROUTING_OFF_TEXT,
+            display.color if routing_enabled else PAUSED_MACHINE_COLOR,
         )
         key_actions[SESSIONS_MACHINE_PAUSE_KEY_LOCATION] = ("toggle_machine_routing", machine)
-        list_entries = [self.session_toggle_list_entry(session) for session in self.known_sessions_of_machine(machine)]
+        now = time.monotonic()
+        list_entries = [
+            self.session_toggle_list_entry(session, now) for session in self.known_sessions_of_machine(machine)
+        ]
         if not list_entries:
             key_images.update(
                 render_text_panel(
@@ -2043,7 +2816,7 @@ class ClaudeDeckCoordinator:
         other_request_count = len(self.queued_request_ids) - 1
         if other_request_count > 0:
             key_images[(2, 2)] = accent_key_image(
-                "skip_forward", "SIGUIENTE", PENDING_ALERT_COLOR, caption=f"+{other_request_count} EN COLA"
+                "skip_forward", "SIGUIENTE", PRIMARY_ACTION_COLOR, caption=f"+{other_request_count} EN COLA"
             )
             key_actions[(2, 2)] = ("cycle_request", None)
         key_images[(2, 3)] = navigation_key_image("home", "INICIO")
@@ -2064,7 +2837,7 @@ class ClaudeDeckCoordinator:
         key_images, key_actions = self.build_banner(request, (TextParagraph(question["question"], BODY_TEXT_COLOR),))
         for option_index, option in enumerate(question["options"]):
             location = (1, option_index)
-            key_images[location] = render_label_key(
+            key_images[location] = render_option_key(
                 option_key_design(
                     option_index,
                     option["label"],
@@ -2133,14 +2906,17 @@ class ClaudeDeckCoordinator:
             option = self.current_question(request)["options"][choice["index"]]
             paragraphs = [
                 TextParagraph("Vas a responder:", MUTED_TEXT_COLOR),
-                TextParagraph(option["label"], BODY_TEXT_COLOR, True),
+                TextParagraph(option_label_without_recommendation(option["label"]), BODY_TEXT_COLOR, True),
             ]
             if option["description"]:
                 paragraphs.append(TextParagraph(option["description"], MUTED_BODY_COLOR))
             return paragraphs
         if choice["kind"] == "multi":
             options = self.current_question(request)["options"]
-            chosen_labels = [options[option_index]["label"] for option_index in sorted(request.multi_select_choices)]
+            chosen_labels = [
+                option_label_without_recommendation(options[option_index]["label"])
+                for option_index in sorted(request.multi_select_choices)
+            ]
             return [
                 TextParagraph("Vas a responder:", MUTED_TEXT_COLOR),
                 TextParagraph("\n".join(f"• {label}" for label in chosen_labels), BODY_TEXT_COLOR, True),
@@ -2173,7 +2949,7 @@ class ClaudeDeckCoordinator:
         if choice["kind"] == "permission":
             unused_title, send_caption, send_color, unused_text_color = DECISION_PRESENTATION[choice["decision"]]
         else:
-            send_caption, send_color = "RESPUESTA", ALLOW_COLOR
+            send_caption, send_color = "RESPUESTA", PRIMARY_ACTION_COLOR
         key_images[(2, 4)] = accent_key_image("send", "ENVIAR", send_color, caption=send_caption)
         key_actions[(2, 4)] = ("confirm_send", None)
         return key_images, key_actions
@@ -2233,17 +3009,23 @@ class ClaudeDeckCoordinator:
         background_color = SENT_BACKGROUND_COLOR if answered else RELEASED_BACKGROUND_COLOR
         blank_image = render_label_key(LabelKeyDesign(primary_text="", background_color=background_color))
         key_images = {(row, column): blank_image for row in range(DECK_ROW_COUNT) for column in ALL_COLUMNS}
-        key_images[(1, 1)] = render_label_key(
-            LabelKeyDesign(primary_text="✓" if answered else "↩", background_color=background_color, maximum_font_size=40)
-        )
-        key_images[(1, 2)] = render_label_key(
+        if answered:
+            key_images[SENT_SCREEN_SYMBOL_KEY_LOCATION] = render_mascot_key(
+                MASCOT_CHEERING_POSE, "", background_color, BODY_TEXT_COLOR
+            )
+        else:
+            key_images[SENT_SCREEN_SYMBOL_KEY_LOCATION] = render_icon_key(
+                IconKeyDesign(icon_name="terminal", label_text="", background_color=background_color)
+            )
+        key_images[SENT_SCREEN_CAPTION_KEY_LOCATION] = render_label_key(
             LabelKeyDesign(
                 primary_text="ENVIADO" if answered else "EN LA TERMINAL",
                 background_color=background_color,
+                primary_color=CLAUDE_IVORY_COLOR,
                 maximum_font_size=16,
             )
         )
-        key_images[(1, 3)] = render_label_key(
+        key_images[SENT_SCREEN_MACHINE_KEY_LOCATION] = render_label_key(
             LabelKeyDesign(primary_text=display.label, background_color=display.color, maximum_font_size=15)
         )
         return key_images, {}
@@ -2284,19 +3066,21 @@ class DeckRenderer:
         self.retry_not_before = 0.0
         self.last_full_repush_at = time.monotonic()
         self.last_health_probe_at = 0.0
-        self.main_key_blink_phase_on = True
-        self.last_blink_toggle_at = 0.0
+        self.main_key_is_animating = False
         self.push_executor = ThreadPoolExecutor(max_workers=PUSH_WORKER_COUNT)
+
+    def current_loop_interval_seconds(self):
+        return MAIN_KEY_ANIMATION_FRAME_SECONDS if self.main_key_is_animating else RENDER_LOOP_INTERVAL_SECONDS
 
     def run_forever(self):
         while True:
-            self.coordinator.render_wakeup_event.wait(timeout=RENDER_LOOP_INTERVAL_SECONDS)
+            self.coordinator.render_wakeup_event.wait(timeout=self.current_loop_interval_seconds())
             self.coordinator.render_wakeup_event.clear()
             try:
                 self.coordinator.run_periodic_maintenance()
                 self.probe_companion_health_when_due()
                 self.render_when_needed()
-                self.refresh_main_key_blink()
+                self.refresh_main_key_animation()
                 self.execute_pending_page_jumps()
             except Exception:
                 log_event("renderer error:\n" + traceback.format_exc())
@@ -2323,20 +3107,21 @@ class DeckRenderer:
             log_event(f"push to {location} failed: {push_error}")
             return False
 
-    def refresh_main_key_blink(self):
-        now = time.monotonic()
-        if now - self.last_blink_toggle_at < MAIN_KEY_BLINK_INTERVAL_SECONDS:
-            return
-        self.last_blink_toggle_at = now
-        unused_pending_count, unused_waiting_count, should_blink = self.coordinator.main_page_key_alert_state()
-        self.main_key_blink_phase_on = (not self.main_key_blink_phase_on) if should_blink else True
-        main_key_location = (MAIN_PAGE_NUMBER, MAIN_PAGE_CLAUDE_KEY_ROW, MAIN_PAGE_CLAUDE_KEY_COLUMN)
-        data_url = encode_key_image_as_data_url(self.coordinator.build_main_page_key_image(self.main_key_blink_phase_on))
-        digest = hashlib.sha256(data_url.encode("ascii")).hexdigest()
-        if self.pushed_digest_by_location.get(main_key_location) == digest:
-            return
-        if self.push_key_image(main_key_location, data_url):
-            self.pushed_digest_by_location[main_key_location] = digest
+    def claude_key_locations_to_animate(self):
+        locations = [(MAIN_PAGE_NUMBER, MAIN_PAGE_CLAUDE_KEY_ROW, MAIN_PAGE_CLAUDE_KEY_COLUMN)]
+        displayed_frame = self.coordinator.last_displayed_frame
+        if displayed_frame is not None and displayed_frame.shows_home_screen:
+            locations.append((CLAUDE_PAGE_NUMBER, *HOME_CLAUDE_KEY_LOCATION))
+        return locations
+
+    def refresh_main_key_animation(self):
+        appearance, self.main_key_is_animating = self.coordinator.current_main_key_appearance()
+        data_url, digest = encode_main_key_appearance(appearance)
+        for location in self.claude_key_locations_to_animate():
+            if self.pushed_digest_by_location.get(location) == digest:
+                continue
+            if self.push_key_image(location, data_url):
+                self.pushed_digest_by_location[location] = digest
 
     def render_when_needed(self):
         now = time.monotonic()
@@ -2348,7 +3133,7 @@ class DeckRenderer:
             return
         if self.last_rendered_state_version == -1 and now < self.retry_not_before:
             return
-        frame = self.coordinator.build_deck_frame(self.main_key_blink_phase_on)
+        frame = self.coordinator.build_deck_frame()
         images_by_location = {
             (CLAUDE_PAGE_NUMBER, row, column): key_image for (row, column), key_image in frame.key_images.items()
         }
