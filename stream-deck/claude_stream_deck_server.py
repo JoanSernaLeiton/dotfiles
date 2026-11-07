@@ -1993,6 +1993,7 @@ class ClaudeDeckCoordinator:
             "toggle_machine_routing": self.press_toggle_machine_routing,
             "toggle_auto_open": self.press_toggle_auto_open,
             "open_waiting_reading": self.press_open_waiting_reading,
+            "open_oldest_waiting_reading": self.press_open_oldest_waiting_reading,
             "dismiss_waiting_session": self.press_dismiss_waiting_session,
             "open_machine_sessions": self.press_open_machine_sessions,
             "sessions_next_list_page": self.press_sessions_next_list_page,
@@ -2184,6 +2185,37 @@ class ClaudeDeckCoordinator:
             for session in self.waiting_sessions_by_key.values()
             if self.session_is_on_deck(session.machine, session.session_id)
         ]
+
+    def oldest_visible_waiting_session_key(self):
+        visible_waiting_sessions = self.visible_waiting_sessions()
+        if not visible_waiting_sessions:
+            return None
+        oldest_waiting_session = min(visible_waiting_sessions, key=lambda session: session.waiting_since)
+        return (oldest_waiting_session.machine, oldest_waiting_session.session_id)
+
+    def is_reading_waiting_session(self):
+        return (
+            self.screen == "reading"
+            and self.reading_context is not None
+            and self.reading_context.source_kind == "waiting"
+        )
+
+    def open_oldest_waiting_reading(self):
+        oldest_waiting_session_key = self.oldest_visible_waiting_session_key()
+        if oldest_waiting_session_key is None:
+            return False
+        self.confirm_choice = None
+        self.reading_context = ReadingContext("waiting", oldest_waiting_session_key, 0, "home")
+        self.transition_to_screen("reading")
+        return True
+
+    def show_oldest_waiting_session_or_home(self):
+        if self.open_oldest_waiting_reading():
+            return
+        if self.screen != "home":
+            self.confirm_choice = None
+            self.reading_context = None
+            self.transition_to_screen("home")
 
     def known_sessions_of_machine(self, machine):
         machine_sessions = [session for session in self.known_sessions_by_key.values() if session.machine == machine]
@@ -2396,12 +2428,11 @@ class ClaudeDeckCoordinator:
         with self.condition:
             self.last_user_press_at = 0.0
             self.home_list_page_index = 0
-            if self.queued_request_ids and not self.is_showing_request_flow():
-                self.focus_request(self.queued_request_ids[0])
-            elif not self.queued_request_ids and self.screen != "home":
-                self.confirm_choice = None
-                self.reading_context = None
-                self.transition_to_screen("home")
+            if self.queued_request_ids:
+                if not self.is_showing_request_flow():
+                    self.focus_request(self.queued_request_ids[0])
+            elif not self.is_reading_waiting_session():
+                self.show_oldest_waiting_session_or_home()
             self.pending_page_jumps.append("opened_from_main_page")
             self.mark_state_changed()
 
@@ -2573,10 +2604,14 @@ class ClaudeDeckCoordinator:
         self.reading_context = ReadingContext("waiting", session_key, 0, "home")
         self.transition_to_screen("reading")
 
+    def press_open_oldest_waiting_reading(self, unused_argument):
+        self.open_oldest_waiting_reading()
+
     def press_dismiss_waiting_session(self, session_key):
         self.waiting_sessions_by_key.pop(session_key, None)
         self.reading_context = None
-        self.transition_to_screen("home")
+        if self.queued_request_ids or not self.open_oldest_waiting_reading():
+            self.transition_to_screen("home")
 
     def press_open_machine_sessions(self, machine):
         self.sessions_screen_machine = machine
@@ -2758,9 +2793,7 @@ class ClaudeDeckCoordinator:
                     ("focus_request_by_id", request_id),
                 )
             )
-        waiting_sessions = sorted(
-            self.visible_waiting_sessions(), key=lambda session: session.waiting_since, reverse=True
-        )
+        waiting_sessions = sorted(self.visible_waiting_sessions(), key=lambda session: session.waiting_since)
         finished_presentation = SESSION_STATUS_PRESENTATIONS[SESSION_ACTIVITY_FINISHED]
         for session in waiting_sessions:
             display = machine_display_for(session.machine)
@@ -2870,6 +2903,8 @@ class ClaudeDeckCoordinator:
         key_images[HOME_CLAUDE_KEY_LOCATION] = self.build_main_page_key_image()
         if self.queued_request_ids:
             key_actions[HOME_CLAUDE_KEY_LOCATION] = ("focus_first_request", None)
+        elif self.visible_waiting_sessions():
+            key_actions[HOME_CLAUDE_KEY_LOCATION] = ("open_oldest_waiting_reading", None)
         key_images[(0, 3)] = render_switch_key(
             "AUTO-ABRIR",
             self.auto_open_enabled,
@@ -3200,7 +3235,11 @@ class ClaudeDeckCoordinator:
         key_images[(2, 0)] = navigation_key_image("back", "ATRÁS")
         key_actions[(2, 0)] = ("reading_back", None)
         if context.source_kind == "waiting":
-            key_images[(2, 3)] = navigation_key_image("dismiss", "DESCARTAR", background_color=TERMINAL_KEY_COLOR)
+            other_waiting_session_count = len(self.visible_waiting_sessions()) - 1
+            next_waiting_caption = f"{other_waiting_session_count} más" if other_waiting_session_count > 0 else ""
+            key_images[(2, 3)] = navigation_key_image(
+                "dismiss", "DESCARTAR", caption=next_waiting_caption, background_color=TERMINAL_KEY_COLOR
+            )
             key_actions[(2, 3)] = ("dismiss_waiting_session", context.source_key)
         return key_images, key_actions
 
