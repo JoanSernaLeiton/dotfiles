@@ -42,6 +42,8 @@ TRANSCRIPT_TAIL_BYTES = 256 * 1024
 TERMINAL_ANSWER_CHECK_INTERVAL_SECONDS = 1
 MAXIMUM_LAST_MESSAGE_CHARACTERS = 6000
 DENIED_FROM_DECK_MESSAGE = "Rechazado desde el Stream Deck"
+RUNNING_BACKGROUND_TASK_STATUS = "running"
+BACKGROUND_AGENT_TASK_TYPE_MARKERS = ("agent", "workflow", "teammate")
 SAFE_FILE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]")
 DIRECT_HTTP_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
@@ -535,7 +537,34 @@ def notify_stream_deck(configuration, path, body):
         return
 
 
+def is_background_agent_task_type(task_type):
+    if not isinstance(task_type, str):
+        return False
+    lowercase_task_type = task_type.lower()
+    return any(marker in lowercase_task_type for marker in BACKGROUND_AGENT_TASK_TYPE_MARKERS)
+
+
+def count_running_background_agents(background_tasks):
+    if not isinstance(background_tasks, list):
+        return 0
+    return sum(
+        1
+        for background_task in background_tasks
+        if isinstance(background_task, dict)
+        and background_task.get("status") == RUNNING_BACKGROUND_TASK_STATUS
+        and is_background_agent_task_type(background_task.get("type"))
+    )
+
+
 def handle_stop(configuration, hook_input):
+    running_background_agent_count = count_running_background_agents(hook_input.get("background_tasks"))
+    if running_background_agent_count > 0:
+        delegating_body = dict(
+            session_identity(hook_input, configuration),
+            running_background_agent_count=running_background_agent_count,
+        )
+        notify_stream_deck(configuration, "/api/sessions/waiting", delegating_body)
+        return
     last_message = hook_input.get("last_assistant_message")
     if not isinstance(last_message, str) or not last_message.strip():
         last_message = read_last_assistant_text(hook_input.get("transcript_path"))
